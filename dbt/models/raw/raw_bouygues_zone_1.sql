@@ -1,0 +1,2 @@
+select *
+from RAW.BOUYGUES.BOUYGUES_ZONE_1
