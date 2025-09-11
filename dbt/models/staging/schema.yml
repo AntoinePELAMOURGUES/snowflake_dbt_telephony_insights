@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_bouygues_events
+    description: "Table de staging des événements Bouygues, nettoyée et formatée pour l'analyse"
+    columns:
+      - name: event_time
+        description: "Horodatage de l'événement Bouygues."
+        tests:
+          - not_null
+      - name: imsi
+        description: "Identifiant IMSI du mobile."
+        tests:
+          - not_null
+      - name: msisdn
+        description: "Numéro de ligne mobile MSISDN."
+      - name: event_code
+        description: "Code technique de l'événement réseau."
+        tests:
+          - not_null
+      - name: manufacturer
+        description: "Constructeur du mobile (ex : Apple, Samsung)."
+      - name: coord_x
+        description: "Coordonnée X WGS84 de la cellule."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "coord_x >= 0"
