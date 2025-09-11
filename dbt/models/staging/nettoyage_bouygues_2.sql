@@ -8,5 +8,5 @@ Event_Libl_Fr as LIBELLE,
 Cell_W84X as LATITUDE,
 Cell_W84Y as LONGITUDE,
 upper(Mobile_Type) as MODELE_TPH,
-'zone_1' as ZONE
-from TEL_INSIGHTS.RAW.BOUYGUES_ZONE_1
+'zone_2' as ZONE
+from TEL_INSIGHTS.RAW.BOUYGUES_ZONE_2
