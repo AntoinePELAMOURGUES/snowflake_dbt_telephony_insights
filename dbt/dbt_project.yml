@@ -1,16 +1,7 @@
-
-# Name your project! Project names should contain only lowercase characters
-# and underscores. A good package name should reflect your organization's
-# name or the intended use of these models
 name: 'snowflake_dbt_telephony_insights'
 version: '1.0.0'
-
-# This setting configures which "profile" dbt uses for this project.
 profile: 'snowflake_dbt_telephony_insights'
 
-# These configurations specify where dbt should look for different types of files.
-# The `model-paths` config, for example, states that models in this project can be
-# found in the "models/" directory. You probably won't need to change these!
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -18,14 +9,15 @@ seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
-clean-targets:         # directories to be removed by `dbt clean`
+clean-targets:
   - "target"
   - "dbt_packages"
 
 models:
   snowflake_dbt_telephony_insights:
-    staging:                                                # tous les modèles du dossier models/staging
-      +materialized: view                                   # tous les modèles du dossier models/staging seront des vues
-      +on_configuration_change: continue
-      +target_lag: '24 hours'
-      +snowflake_warehouse: COMPUTE_WH
+    staging:
+      +materialized: view
+      +snowflake_warehouse: tel_insights_etl
+    curated:
+      +materialized: table
+      +snowflake_warehouse: tel_insights_analytics

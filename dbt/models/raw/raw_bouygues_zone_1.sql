@@ -1,2 +1,0 @@
-select *
-from TEL_INSIGHTS.RAW.BOUYGUES_ZONE_1
