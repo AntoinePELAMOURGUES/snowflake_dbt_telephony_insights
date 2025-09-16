@@ -1,0 +1,7 @@
+version: 2
+
+sources:
+  - name: tel_insights_raw
+    schema: event_raw
+    tables:
+      - name: stg_bouygues_events

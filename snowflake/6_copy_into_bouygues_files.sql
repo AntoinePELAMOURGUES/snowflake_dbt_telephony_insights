@@ -113,3 +113,20 @@ COPY INTO tel_insights_raw.event_raw.bouygues_zone_3
 FROM '@my_s3_stage/Evenements Zone 3_data.csv'
 FILE_FORMAT = (FORMAT_NAME = 'mon_format_csv')
 ON_ERROR = 'CONTINUE';
+
+-- Création d'une table contenant l'ensemble des données
+CREATE OR REPLACE TABLE tel_insights_raw.event_raw.bouygues_events AS
+SELECT * FROM tel_insights_raw.event_raw.bouygues_zone_1
+UNION ALL
+SELECT * FROM tel_insights_raw.event_raw.bouygues_zone_2
+UNION ALL
+SELECT * FROM tel_insights_raw.event_raw.bouygues_zone_3;
+
+-- Autorisation usage et select
+GRANT USAGE ON DATABASE tel_insights_raw TO ROLE TRANSFORMER;
+GRANT USAGE ON SCHEMA tel_insights_raw.event_raw TO ROLE TRANSFORMER;
+GRANT SELECT ON ALL TABLES IN SCHEMA tel_insights_raw.event_raw TO ROLE TRANSFORMER;
+
+GRANT USAGE ON DATABASE tel_insights_raw TO ROLE sysadmin;
+GRANT USAGE ON SCHEMA tel_insights_raw.event_raw TO ROLE sysadmin;
+GRANT SELECT ON ALL TABLES IN SCHEMA tel_insights_raw.event_raw TO ROLE sysadmin;
