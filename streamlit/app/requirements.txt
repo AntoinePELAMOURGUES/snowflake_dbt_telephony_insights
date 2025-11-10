@@ -1,0 +1,10 @@
+streamlit
+numpy
+python-multipart
+uvicorn
+pandas
+xlrd
+plotly
+pyproj
+st-clickable-images
+requests
