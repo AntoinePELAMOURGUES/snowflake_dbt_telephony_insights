@@ -1,7 +1,24 @@
+# models/staging/sources.yml
+
 version: 2
 
 sources:
-  - name: tel_insights_raw
-    schema: event_raw
+  - name: raw
+    # Définit la connexion à votre couche RAW
+    database: raw
+    schema: csv
+
     tables:
-      - name: bouygues_events
+      # --- Fichiers de réquisition ---
+
+      - name: src_mt20_orange_csv
+        description: "Données brutes MT20 (ligne) Orange."
+
+      - name: src_mt20_sfr_csv
+        description: "Données brutes MT20 (ligne) SFR."
+
+      - name: src_mt24_orange_csv
+        description: "Données brutes MT24 (boîtier) Orange."
+
+      - name: src_mt24_sfr_csv
+        description: "Données brutes MT24 (boîtier) SFR."

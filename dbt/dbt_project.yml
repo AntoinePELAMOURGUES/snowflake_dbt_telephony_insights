@@ -1,6 +1,6 @@
 name: 'snowflake_dbt_telephony_insights'
 version: '1.0.0'
-profile: 'snowflake_dbt_telephony_insights'
+profile: 'snowflake_dbt_telephony_insights_raw'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -17,7 +17,11 @@ models:
   snowflake_dbt_telephony_insights:
     staging:
       +materialized: view
+      +database: ANALYTICS_DEV
+      +schema: stg
       +snowflake_warehouse: tel_insights_etl
-    curated:
-      +materialized: table
-      +snowflake_warehouse: tel_insights_analytics
+    # Configuration pour le dossier 'marts'
+    marts:
+      +materialized: table # Les modèles marts seront des tables
+      +database: ANALYTICS_DEV
+      +schema: MARTS       # Résultat: ANALYTICS_DEV.MARTS.fct_communications
