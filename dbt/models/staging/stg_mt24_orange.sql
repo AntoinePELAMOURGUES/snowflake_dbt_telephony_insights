@@ -13,9 +13,10 @@ renamed_typed_parsed AS (
         -- Métadonnées de la communication (Fix 1: Majuscule)
         UPPER("TYPE") AS type_evenement,
 
-        -- Conversion de la date en timestamp
-        -- Note: Le format 'DD/MM/YYYY - HH24:MI:SS' est spécifique à cet opérateur
-        TRY_TO_TIMESTAMP("DATE", 'DD/MM/YYYY - HH24:MI:SS') AS date_heure_evenement,
+        -- Conversion de la date en timestamp (Fix: Gestion UTC -> Europe/Paris)
+        CONVERT_TIMEZONE('Europe/Paris',
+            TRY_TO_TIMESTAMP_TZ("DATE", 'DD/MM/YYYY - HH24:MI:SS UTC')
+        ) AS date_heure_evenement,
 
         -- Nettoyage des identifiants (Fix 2, 3: REGEXP_REPLACE)
         -- On supprime tous les caractères non numériques ( \D ) pour isoler l'identifiant

@@ -8,3 +8,5 @@ plotly
 pyproj
 st-clickable-images
 requests
+python-dotenv
+kaleido

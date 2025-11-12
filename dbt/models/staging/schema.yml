@@ -11,7 +11,7 @@ models:
       - name: type_evenement
         description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
       - name: date_heure_evenement
-        description: "Horodatage de l'événement (converti en TIMESTAMP)."
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale sans conversion "
         tests:
           - not_null
       - name: direction
@@ -62,7 +62,7 @@ models:
       - name: type_evenement
         description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
       - name: date_heure_evenement
-        description: "Horodatage de l'événement (converti en TIMESTAMP)."
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale via conversion. Données src en UTC"
         tests:
           - not_null
       - name: direction
@@ -113,7 +113,7 @@ models:
       - name: type_evenement
         description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
       - name: date_heure_evenement
-        description: "Horodatage de l'événement (converti en TIMESTAMP)."
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale via conversion. Données src en UTC"
         tests:
           - not_null
       - name: direction
@@ -164,7 +164,7 @@ models:
       - name: type_evenement
         description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
       - name: date_heure_evenement
-        description: "Horodatage de l'événement (converti en TIMESTAMP)."
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale via conversion. Données src en UTC"
         tests:
           - not_null
       - name: direction

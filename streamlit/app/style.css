@@ -1,18 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Playwrite+IN:wght@100..400&display=swap" rel="stylesheet');
+@import url("https://fonts.googleapis.com/css2?family=IM+Fell+French+Canon+SC&display=swap");
 
 html,
 body,
 [class*="css"] {
-    font-family: 'Playwrite IN', sans-serif;
-    font-size: 18px;
-    font-weight: 500;
-    color: #d8a824;
+  font-family: 'IM Fell French Canon SC', 'Playwrite IN', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: #d8a824;
 }
 
 /* Style pour le titre */
 h1 {
-    color: #d8a824;
-    /* Couleur du titre */
-    font-family: 'Playwrite IN', sans-serif;
-    /* Police du titre */
+  color: #d8a824;
+  /* Couleur du titre */
+  font-family: 'IM Fell French Canon SC', 'Playwrite IN', sans-serif;
+  /* Police du titre */
+}
+
+.im-fell-french-canon-sc-regular {
+  font-family: "IM Fell French Canon SC", serif;
+  font-weight: 400;
+  font-style: normal;
 }
