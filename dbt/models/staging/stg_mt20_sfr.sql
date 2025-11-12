@@ -1,9 +1,9 @@
--- models/staging/stg_mt20_orange_csv.sql
+-- models/staging/stg_mt24_sfr_csv.sql
 
 WITH source AS (
 
     -- Référence à la table RAW via la macro 'source' de dbt
-    SELECT * FROM {{ source('raw', 'src_mt20_orange_csv') }}
+    SELECT * FROM {{ source('raw', 'src_mt20_sfr_csv') }}
 
 ),
 
