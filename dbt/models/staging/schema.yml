@@ -11,15 +11,167 @@ models:
       - name: type_evenement
         description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
       - name: date_heure_evenement
-        description: "Horodatage de l'événement (converti en TIMESTAMP)."
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale sans conversion "
         tests:
           - not_null
       - name: direction
         description: "Sens de la communication (entrant, sortant)."
         tests:
           - accepted_values:
-              values: ['entrant', 'sortant', 'inconnu', 'Non applicable'] # A ajuster selon les opérateurs
-              # Ajout d'une gestion des 'NULL' si le champ est vide
+              values: ['ENTRANT', 'SORTANT', 'INCONNU', 'NON APPLICABLE']
+      - name: duree_secondes
+        description: "Durée (secondes pour appels) ou Volume (octets/ko pour DATA), convertie en INT."
+
+      # --- Acteurs (nettoyés) ---
+      - name: msisdn_cible
+        description: "MSISDN de la ligne réquisitionnée, nettoyé (ex: 336...)."
+        tests:
+          - not_null
+      - name: msisdn_correspondant
+        description: "MSISDN du correspondant, nettoyé (ex: 336...)."
+
+      # --- Identifiants Techniques (nettoyés) ---
+      - name: imsi
+        description: "IMSI de la carte SIM de la cible, nettoyé."
+      - name: imei
+        description: "IMEI du boîtier (téléphone) de la cible, nettoyé."
+
+      # --- Localisation & Réseau ---
+      - name: adresse_antenne
+        description: "adresse de l'antenne."
+      - name: comp_adresse_antenne
+        description: "Complement adresse."
+      - name: code_postal_antenne
+        description: "Code postal de l'antenne."
+      - name: ville_antenne
+        description: "Ville d'implantation de l'antenne."
+      - name: pays_antenne
+        description: "Pays d'implantation de l'antenne."
+      - name: type_coordonnees
+        description: "Système de projection des coordonnées (ex: Lambert2Etendu, WGS84)."
+      - name: coord_x
+        description: "Coordonnée X (Longitude ou équivalent Lambert) de l'antenne."
+      - name: coord_y
+        description: "Coordonnée Y (Latitude ou équivalent Lambert) de l'antenne."
+
+  - name: stg_mt24_orange # Doit correspondre au nom de votre fichier .sql
+    description: "Modèle STAGING pour les données MT24 Orange. Les données sont nettoyées, typées et renommées. Une ligne = un événement réseau."
+
+    columns:
+      # --- Événement ---
+      - name: type_evenement
+        description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
+      - name: date_heure_evenement
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale via conversion. Données src en UTC"
+        tests:
+          - not_null
+      - name: direction
+        description: "Sens de la communication (entrant, sortant)."
+        tests:
+          - accepted_values:
+              values: ['ENTRANT', 'SORTANT', 'INCONNU', 'NON APPLICABLE']
+      - name: duree_secondes
+        description: "Durée (secondes pour appels) ou Volume (octets/ko pour DATA), convertie en INT."
+
+      # --- Acteurs (nettoyés) ---
+      - name: msisdn_cible
+        description: "MSISDN de la ligne réquisitionnée, nettoyé (ex: 336...)."
+        tests:
+          - not_null
+      - name: msisdn_correspondant
+        description: "MSISDN du correspondant, nettoyé (ex: 336...)."
+
+      # --- Identifiants Techniques (nettoyés) ---
+      - name: imsi
+        description: "IMSI de la carte SIM de la cible, nettoyé."
+      - name: imei
+        description: "IMEI du boîtier (téléphone) de la cible, nettoyé."
+
+      # --- Localisation & Réseau ---
+      - name: adresse_antenne
+        description: "adresse de l'antenne."
+      - name: comp_adresse_antenne
+        description: "Complement adresse."
+      - name: code_postal_antenne
+        description: "Code postal de l'antenne."
+      - name: ville_antenne
+        description: "Ville d'implantation de l'antenne."
+      - name: pays_antenne
+        description: "Pays d'implantation de l'antenne."
+      - name: type_coordonnees
+        description: "Système de projection des coordonnées (ex: Lambert2Etendu, WGS84)."
+      - name: coord_x
+        description: "Coordonnée X (Longitude ou équivalent Lambert) de l'antenne."
+      - name: coord_y
+        description: "Coordonnée Y (Latitude ou équivalent Lambert) de l'antenne."
+
+  - name: stg_mt20_sfr # Doit correspondre au nom de votre fichier .sql
+    description: "Modèle STAGING pour les données MT20 SFR. Les données sont nettoyées, typées et renommées. Une ligne = un événement réseau."
+
+    columns:
+      # --- Événement ---
+      - name: type_evenement
+        description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
+      - name: date_heure_evenement
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale via conversion. Données src en UTC"
+        tests:
+          - not_null
+      - name: direction
+        description: "Sens de la communication (entrant, sortant)."
+        tests:
+          - accepted_values:
+              values: ['ENTRANT', 'SORTANT', 'INCONNU', 'NON APPLICABLE']
+      - name: duree_secondes
+        description: "Durée (secondes pour appels) ou Volume (octets/ko pour DATA), convertie en INT."
+
+      # --- Acteurs (nettoyés) ---
+      - name: msisdn_cible
+        description: "MSISDN de la ligne réquisitionnée, nettoyé (ex: 336...)."
+        tests:
+          - not_null
+      - name: msisdn_correspondant
+        description: "MSISDN du correspondant, nettoyé (ex: 336...)."
+
+      # --- Identifiants Techniques (nettoyés) ---
+      - name: imsi
+        description: "IMSI de la carte SIM de la cible, nettoyé."
+      - name: imei
+        description: "IMEI du boîtier (téléphone) de la cible, nettoyé."
+
+      # --- Localisation & Réseau ---
+      - name: adresse_antenne
+        description: "adresse de l'antenne."
+      - name: comp_adresse_antenne
+        description: "Complement adresse."
+      - name: code_postal_antenne
+        description: "Code postal de l'antenne."
+      - name: ville_antenne
+        description: "Ville d'implantation de l'antenne."
+      - name: pays_antenne
+        description: "Pays d'implantation de l'antenne."
+      - name: type_coordonnees
+        description: "Système de projection des coordonnées (ex: Lambert2Etendu, WGS84)."
+      - name: coord_x
+        description: "Coordonnée X (Longitude ou équivalent Lambert) de l'antenne."
+      - name: coord_y
+        description: "Coordonnée Y (Latitude ou équivalent Lambert) de l'antenne."
+
+  - name: stg_mt24_sfr # Doit correspondre au nom de votre fichier .sql
+    description: "Modèle STAGING pour les données MT24 SFR. Les données sont nettoyées, typées et renommées. Une ligne = un événement réseau."
+
+    columns:
+      # --- Événement ---
+      - name: type_evenement
+        description: "Type d'événement réseau (TELEPHONIE, SMS, MMS, DATA_PAQUET)."
+      - name: date_heure_evenement
+        description: "Horodatage de l'événement (converti en TIMESTAMP). Heure locale via conversion. Données src en UTC"
+        tests:
+          - not_null
+      - name: direction
+        description: "Sens de la communication (entrant, sortant)."
+        tests:
+          - accepted_values:
+              values: ['ENTRANT', 'SORTANT', 'INCONNU', 'NON APPLICABLE']
       - name: duree_secondes
         description: "Durée (secondes pour appels) ou Volume (octets/ko pour DATA), convertie en INT."
 

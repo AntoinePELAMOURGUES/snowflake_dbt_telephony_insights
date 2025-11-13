@@ -8,3 +8,9 @@ plotly
 pyproj
 st-clickable-images
 requests
+python-dotenv
+kaleido
+snowflake-snowpark-python
+bcrypt
+snowflake-connector-python
+streamlit_option_menu

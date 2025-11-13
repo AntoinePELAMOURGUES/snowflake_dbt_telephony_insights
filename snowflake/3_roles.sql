@@ -8,6 +8,8 @@ CREATE ROLE IF NOT EXISTS RAW_DATA_READER;
 -- Attribution des privilèges
 GRANT ALL ON DATABASE raw TO ROLE TRANSFORMER;
 GRANT ALL ON DATABASE analytics_dev TO ROLE ORCHESTRATOR;
+GRANT ALL ON DATABASE analytics_dev TO ROLE sysadmin;
+
 
 -- Droits de navigation
 GRANT USAGE ON DATABASE analytics_dev TO ROLE APP_USER;
@@ -31,7 +33,7 @@ GRANT USAGE ON WAREHOUSE TEL_INSIGHTS_ANALYTICS TO ROLE APP_OWNER;
 GRANT USAGE ON DATABASE raw TO ROLE RAW_DATA_READER;
 GRANT SELECT ON FUTURE TABLES IN DATABASE raw TO ROLE RAW_DATA_READER;
 
-use role useradmin;
+use role accountadmin;
 -- 1. Donner les droits de LECTURE sur la couche RAW
 -- (Nécessaire pour que le SELECT de la vue fonctionne)
 GRANT USAGE ON DATABASE RAW TO ROLE sysadmin;
@@ -42,11 +44,13 @@ GRANT SELECT ON FUTURE TABLES IN SCHEMA RAW.CSV TO ROLE sysadmin;
 
 -- 2. Donner les droits d'ECRITURE sur la couche STAGING
 -- (C'est ce qui cause l'erreur)
-GRANT USAGE ON DATABASE analytics_dev TO ROLE sysadmin; -- (Si 'STG' est le nom de la base)
+GRANT USAGE ON DATABASE analytics_dev TO ROLE sysadmin;
 GRANT USAGE ON SCHEMA analytics_dev.stg TO ROLE sysadmin; -- (Si 'STG' est le schéma)
 GRANT CREATE VIEW ON SCHEMA analytics_dev.stg TO ROLE sysadmin;
 GRANT CREATE TABLE ON SCHEMA analytics_dev.stg TO ROLE sysadmin;
 GRANT CREATE PROCEDURE ON SCHEMA analytics_dev.stg TO ROLE sysadmin;
+
+GRANT USAGE ON WAREHOUSE TEL_INSIGHTS_ETL TO ROLE sysadmin;
 --- Attribution des rôles aux utilisateurs
 -- GRANT ROLE TRANSFORMER TO USER dev_analyst;
 -- GRANT ROLE ORCHESTRATOR TO USER prod_orchestrator;

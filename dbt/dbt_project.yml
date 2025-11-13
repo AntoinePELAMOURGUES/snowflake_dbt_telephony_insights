@@ -17,11 +17,8 @@ models:
   snowflake_dbt_telephony_insights:
     staging:
       +materialized: view
-      +database: ANALYTICS_DEV
-      +schema: stg
       +snowflake_warehouse: tel_insights_etl
     # Configuration pour le dossier 'marts'
     marts:
       +materialized: table # Les modèles marts seront des tables
-      +database: ANALYTICS_DEV
       +schema: MARTS       # Résultat: ANALYTICS_DEV.MARTS.fct_communications
