@@ -9,6 +9,7 @@ import streamlit as st
 st.set_page_config(
     page_title="Telephony DataViz App",
     page_icon="./img/icone.png",
+    layout="wide",
     initial_sidebar_state="collapsed",
 )
 
@@ -62,10 +63,8 @@ page_bg_img = f"""
     }}
 
     [data-testid="stMainBlockContainer"] {{
-        max-width: 100vw;
-        width: 100vw;
-        padding-left: 10rem;
-        padding-right: 10rem;
+        padding-left: 10rem;  /* Votre espacement */
+        padding-right: 10rem; /* Votre espacement */
     }}
 
     [data-testid="stHeader"] {{
@@ -106,18 +105,28 @@ st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playwrite+IN:wght@100..400&display=swap');
-    @import url("https://fonts.googleapis.com/css2?family=IM+Fell+French+Canon+SC&display=swap");
 
-    div.stButton {  <!-- Conteneur parent du bouton -->
-        width: 100%;
+    /* [SOLUTION]
+       1. On cible le conteneur du bouton (div.stButton)
+       2. On lui dit de centrer son contenu (le <button>)
+    */
+    div.stButton {
         display: flex;
         justify-content: center;
+        width: 100%; /* S'assure que le conteneur prend toute la largeur */
     }
 
+    /* 3. On cible le bouton lui-même
+    */
     div.stButton > button {
-        width: 20%;
-        height: 0.5em;
-        font-size: 4em;
+        /* [LA CORRECTION CLÉ]
+           On donne au bouton la MÊME largeur que votre image.
+        */
+        width: 800px;
+
+        /* Le reste de votre style est parfait */
+        padding: 0.5em 1.5em;
+        font-size: 2.5em;
         font-family: 'Playwrite IN', sans-serif;
         font-weight: 600;
         background-color: #111;
@@ -127,8 +136,8 @@ st.markdown(
         transition: background 0.3s, color 0.3s;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         letter-spacing: 0.05em;
-        margin: 0 auto;  <!-- Redondance pour compatibilité -->
     }
+
     div.stButton > button:hover {
         background: #222;
         color: #d8a824;
@@ -140,7 +149,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Bouton centré
-start_button = st.button("Démarrer l'application")
-if start_button:
-    st.switch_page("pages/🚨Infos.py")
+col1, col_btn, col3 = st.columns([1, 2, 1])
+
+with col_btn:
+    start_button = st.button("Démarrer l'application")
+    if start_button:
+        # Assurez-vous que le nom du fichier est correct.
+        st.switch_page("pages/1_Authentification.py")
