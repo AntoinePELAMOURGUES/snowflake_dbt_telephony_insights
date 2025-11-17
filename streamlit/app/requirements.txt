@@ -14,3 +14,4 @@ snowflake-snowpark-python
 bcrypt
 snowflake-connector-python
 streamlit_option_menu
+st-pages

@@ -9,15 +9,20 @@ CREATE ROLE IF NOT EXISTS AIRFLOW_ROLE COMMENT = 'Rôle pour l orchestration Air
 -- 2. Création des Utilisateurs (Exemple)
 -- (Gérez les mots de passe de manière sécurisée, idéalement via des clés/secrets)
 CREATE USER IF NOT EXISTS STREAMLIT_APP_USER
-    -- [SÉCURITÉ] Remplacez ceci par le mot de passe réel de votre secrets.toml
-    PASSWORD = 'MOT_DE_PASSE_TRES_SECURISE'
-    -- [IMPORTANT] Lie les objets par défaut à l'utilisateur
+    -- [SÉCURITÉ] Utilisation de la clé publique
+    RSA_PUBLIC_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4Pdih1fHCPhIvw6BAj9d
+Ini/l037a7yP0B0iXXws9L7d0OK3ce0JLGrF3JPyd4/WTkjco1AqURbVGTCiOuO6
+3iAWvJs+eo22Qj2O9M5wTrqMcYxnBOQ1P2yzlr/ghsQFSxedZKN6t44XxlHbpjq2
+2wPad3QSxJ2M0QDtDgWztSzZY4V0qsn0mhtQ7KMIzwUSO8pXc3htARFhd5Dee/9b
+zmdO3uG2p4cpt8XXXj2ukstKtMSAJNL9R8CzyhbAUkbpnLa9cpVRRcxnp77gM1ku
+GG9K7XaKaHSKFCXqz1qrDpUbSyI5QFwBNI5o238XnwPXRrPfPgCPXg06KXP2W5tc
+XQIDAQAB'
     DEFAULT_ROLE = STREAMLIT_ROLE
     DEFAULT_WAREHOUSE = STREAMLIT_WH
-    DEFAULT_NAMESPACE = AUTH_DB.PROD
-    -- Empêche la demande de changement de mdp à la première connexion
     MUST_CHANGE_PASSWORD = FALSE
-    COMMENT = 'Utilisateur de service pour la connexion Streamlit';
+    DEFAULT_NAMESPACE = AUTH_DB.PROD
+    COMMENT = 'Utilisateur de service (Clé-Paire) pour la connexion Streamlit';
+
 CREATE USER IF NOT EXISTS DBT_USER
     PASSWORD = 'VOTRE_MOT_DE_PASSE_SECRET'
     LOGIN_NAME = 'DBT_USER'
@@ -27,7 +32,7 @@ CREATE USER IF NOT EXISTS DBT_USER
 -- 3. Attribution des Rôles aux Utilisateurs
 GRANT ROLE STREAMLIT_ROLE TO USER STREAMLIT_APP_USER;
 GRANT ROLE DBT_ROLE TO USER DBT_USER;
-GRANT ROLE DBT_ROLE TO ROLE AIRFLOW_ROLE; -- Si Airflow orchestre dbt
+GRANT ROLE DBT_ROLE TO ROLE AIRFLOW_ROLE;
 
 -- 4. Attribution des Rôles au SYSADMIN (pour la gestion)
 GRANT ROLE STREAMLIT_ROLE TO ROLE SYSADMIN;
@@ -62,7 +67,7 @@ COMMENT = 'Zone de travail exclusive pour dbt. C est ici que dbt nettoie, standa
 CREATE DATABASE IF NOT EXISTS MARTS
 COMMENT = 'Base de données des datamarts finaux pour les analyses et visualisations.';
 
--- 7. Création des Schémas et Tables (Exemples)
+-- 7. Création des Schémas et Tables
 USE DATABASE AUTH_DB;
 CREATE SCHEMA IF NOT EXISTS PROD;
 CREATE TABLE IF NOT EXISTS AUTH_DB.PROD.USERS (
@@ -75,7 +80,9 @@ USE DATABASE DOSSIERS_DB;
 CREATE SCHEMA IF NOT EXISTS PROD;
 CREATE TABLE IF NOT EXISTS DOSSIERS_DB.PROD.DOSSIERS (
     DOSSIER_ID VARCHAR PRIMARY KEY,
-    PV_NUMBER VARCHAR,
+    PV_NUMBER VARCHAR NOT NULL,
+    NOM_DOSSIER VARCHAR,
+    TYPE_ENQUETE VARCHAR,
     DIRECTEUR_ENQUETE VARCHAR,
     DATE_SAISINE DATE,
     CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),

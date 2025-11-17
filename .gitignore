@@ -211,3 +211,9 @@ __marimo__/
 # txt
 *.txt
 .streamlit/secrets.toml
+
+# clé pairs
+*.pem
+*.key
+*.p8
+*.pub

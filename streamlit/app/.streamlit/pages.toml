@@ -1,0 +1,51 @@
+# .streamlit/pages.toml
+
+# Page 1: La page d'accueil publique
+[[pages]]
+path = "pages/Accueil_Contenu.py"
+name = "Accueil"
+icon = "🏠"
+
+# Page 2: La page d'authentification
+[[pages]]
+path = "pages/Authentification.py"
+name = "Authentification"
+icon = "🔒"
+
+# Page 3: Le hub principal (privé)
+[[pages]]
+path = "pages/Gestion_Dossiers.py"
+name = "Gestion des Dossiers"
+icon = "📁"
+
+# Une section pour les outils d'analyse (privés)
+#[[pages]]
+# name = "Analyse Opérateurs"
+# icon = "📡"
+# is_section = true
+
+# [[pages]]
+# path = "pages/Orange_Reunion.py"
+# name = "Analyse Orange"
+# icon = "📌"
+
+# [[pages]]
+# path = "pages/SRR.py"
+# name = "Analyse SRR"
+# icon = "📌"
+
+# [[pages]]
+# path = "pages/TELCO.py"
+# name = "Analyse TELCO"
+# icon = "📌"
+
+# Une section pour l'admin (privé ou public, selon votre choix)
+[[pages]]
+name = "Administration"
+icon = "⚙️"
+is_section = true
+
+[[pages]]
+path = "pages/Infos.py"
+name = "Informations Système"
+icon = "🚨"

@@ -10,13 +10,6 @@ from snowflake.snowpark.exceptions import SnowparkSQLException
 
 # -----------------------------------
 
-# Importez vos modules de page (si vous modularisez plus tard)
-# import ui_dossiers, ui_ingestion, ui_analyse, ui_confrontation
-
-st.set_page_config(
-    page_title="Dashboard Analyse", layout="wide", initial_sidebar_state="collapsed"
-)
-
 
 # --- 1. RÉCUPÉRATION DE LA SESSION SNOWFLAKE (via le cache) ---
 @st.cache_resource
@@ -43,7 +36,6 @@ if not session:
 
 
 # --- 2. Vérification de l'Authentification ---
-# (S'assurer que l'utilisateur est bien passé par 1_Authentification.py)
 if not st.session_state.get("is_logged_in", False):
     st.error("Accès refusé. Veuillez vous authentifier.")
     # Assurez-vous que le chemin est correct (s'il est dans /pages)
@@ -86,6 +78,8 @@ if selected_tab == "Gestion Dossiers":
                 SELECT
                     DOSSIER_ID,
                     PV_NUMBER,
+                    NOM_DOSSIER,
+                    TYPE_ENQUETE,
                     DIRECTEUR_ENQUETE,
                     DATE_SAISINE,
                 FROM
@@ -113,7 +107,7 @@ if selected_tab == "Gestion Dossiers":
     else:
         st.subheader("📂 Sélectionner un dossier existant")
         dossier_options = {
-            f"{row['PV_NUMBER']} ": row["DOSSIER_ID"]
+            f"{row['PV_NUMBER'] } - {row['NOM_DOSSIER']} ": row["DOSSIER_ID"]
             for index, row in user_dossiers_df.iterrows()
         }
         selected_dossier_name = st.selectbox(
@@ -140,12 +134,22 @@ if selected_tab == "Gestion Dossiers":
     with st.form("new_dossier_form"):
         st.markdown(
             """
-        Veuillez renseigner les informations suivantes :`.
+        Veuillez renseigner les informations suivantes :
         """
         )
         pv_number = st.text_input(
             "N° de PV (Format: CODE_UNITE/NUMERO_PV/ANNEE)",
             placeholder="ex: 02489/0000/2025",
+        )
+        nom_dossier = st.text_input("Nom du Dossier")
+        type_enquete = st.selectbox(
+            "Type d'Enquête",
+            options=[
+                "Enquête Préliminaire",
+                "Enquête de Flagrance",
+                "Commission Rogatoire",
+                "Autre",
+            ],
         )
         directeur_enquete = st.text_input("Nom du Directeur d'Enquête")
         date_saisine = st.date_input("Date de Saisine", datetime.date.today())
@@ -164,6 +168,8 @@ if selected_tab == "Gestion Dossiers":
                     new_dossier_data = {
                         "DOSSIER_ID": [new_dossier_id],
                         "PV_NUMBER": [pv_number],
+                        "NOM_DOSSIER": [nom_dossier],
+                        "TYPE_ENQUETE": [type_enquete],
                         "DIRECTEUR_ENQUETE": [directeur_enquete],
                         "DATE_SAISINE": [date_saisine],
                         "CREATED_BY_USER_EMAIL": [user_email],
