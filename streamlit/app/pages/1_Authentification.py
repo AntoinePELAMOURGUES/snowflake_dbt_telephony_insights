@@ -16,59 +16,6 @@ def get_img_as_base64(file):
     return base64.b64encode(data).decode()
 
 
-img1 = get_img_as_base64("./img/background.png")
-img2 = get_img_as_base64("./img/banniere.png")
-
-
-page_bg_img = f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playwrite+IN:wght@100..400&display=swap');
-    @import url("https://fonts.googleapis.com/css2?family=IM+Fell+French+Canon+SC&display=swap");
-
-
-    [data-testid="stAppViewContainer"] {{
-        background-image: url("data:image/png;base64,{img1}");
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        max-width: 100vw;
-        padding : 0;
-        font-family: "IM Fell French Canon SC", "Playwrite IN", monospace;
-        font-size: 18px;
-
-    }}
-
-    [data-testid="stMainBlockContainer"] {{
-        max-width: 100vw;
-        width: 100vw;
-        padding-left: 10rem;
-        padding-right: 10rem;
-        padding-top: 2rem;
-    }}
-
-    [data-testid="stHeader"] {{
-        background: rgba(0, 0, 0, 0);
-    }}
-
-    [data-testid="stToolbar"] {{
-        right: 2rem;
-    }}
-
-    [data-testid="stSidebar"] {{
-        background-image: url("data:image/png;base64,{img2}");
-        background-position: bottom left ;
-        background-repeat: no-repeat;
-        width: 100%;
-    }}
-    </style>
-    """
-
-st.markdown(
-    page_bg_img,
-    unsafe_allow_html=True,
-)
-
-
 # --- 1. CONNEXION SNOWFLAKE ---
 @st.cache_resource
 def create_snowpark_session():
