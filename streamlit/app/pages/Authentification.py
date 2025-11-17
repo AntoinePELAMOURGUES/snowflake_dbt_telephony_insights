@@ -4,17 +4,6 @@ from snowflake.snowpark.exceptions import SnowparkSQLException
 import bcrypt
 import re
 
-st.set_page_config(
-    page_title="Authentification", layout="centered", initial_sidebar_state="collapsed"
-)
-
-
-@st.cache_data
-def get_img_as_base64(file):
-    with open(file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
 
 # --- 1. CONNEXION SNOWFLAKE ---
 @st.cache_resource
@@ -106,9 +95,10 @@ with tabs[0]:
                             # Stockage en session
                             st.session_state.is_logged_in = True
                             st.session_state.user_email = email_connexion
+                            st.session_state.authenticated = True
 
                             # Redirection
-                            st.switch_page("pages/2_Gestion_Dossiers.py")
+                            st.switch_page("Gestion_Dossiers.py")
                         else:
                             st.error("Mot de passe incorrect.")
                     else:

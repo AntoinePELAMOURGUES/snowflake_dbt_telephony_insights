@@ -155,4 +155,4 @@ with col_btn:
     start_button = st.button("Démarrer l'application")
     if start_button:
         # Assurez-vous que le nom du fichier est correct.
-        st.switch_page("pages/1_Authentification.py")
+        st.switch_page("pages/Authentification.py")
