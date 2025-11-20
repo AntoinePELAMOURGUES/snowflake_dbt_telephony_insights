@@ -1,10 +1,8 @@
 import streamlit as st
-from streamlit_option_menu import option_menu
 import pandas as pd
-import datetime
 import uuid
-from snowflake.snowpark.session import Session
-from snowflake.snowpark.exceptions import SnowparkSQLException
+from datetime import date
+from snowflake.snowpark import Session
 
 
 # --- 1. RÉCUPÉRATION DE LA SESSION SNOWFLAKE (via le cache) ---
@@ -31,219 +29,171 @@ if not st.session_state.get("is_logged_in", False):
     st.page_link("pages/Authentification.py", label="Retour à l'authentification")
     st.stop()
 
-# --- 3. HEADER ET FORMATAGE DU NOM ---
-user_email = st.session_state.get("user_email", "utilisateur.inconnu@...")
 
-try:
-    local_part = user_email.split("@")[0]
-    parts = local_part.split(".")
-    if len(parts) >= 2:
-        prenom = parts[0]
-        nom = " ".join(parts[1:])
-        display_name = f"{prenom.title()} {nom.upper()}"
-    else:
-        display_name = local_part.title()
-except Exception:
-    display_name = user_email
-
-# ==============================================================================
-#  ZONE DE DÉFINITION DES FONCTIONS (GLOBALES)
-# ==============================================================================
-
-
-@st.cache_data(ttl=300)
-def load_user_dossiers(_session, user_email):
+# Fonction de chargement des dossiers (Cachée pour perf, mais avec TTL pour rafraichir)
+@st.cache_data(ttl=60)
+def load_user_dossiers(user_email):
     try:
         query = """
-            SELECT
-                DOSSIER_ID,
-                PV_NUMBER,
-                NOM_DOSSIER,
-                TYPE_ENQUETE,
-                DIRECTEUR_ENQUETE,
-                DATE_SAISINE
-            FROM
-                DOSSIERS_DB.PROD.DOSSIERS
-            WHERE
-                CREATED_BY_USER_EMAIL = ?
-            ORDER BY CREATED_AT DESC;
+            SELECT DOSSIER_ID, PV_NUMBER, NOM_DOSSIER, TYPE_ENQUETE, DATE_SAISINE, STATUS
+            FROM DOSSIERS_DB.PROD.DOSSIERS
+            WHERE CREATED_BY_USER_EMAIL = ?
+            ORDER BY DATE_SAISINE DESC
         """
-        dossiers_df = _session.sql(query, params=[user_email]).to_pandas()
-        return dossiers_df
+        return session.sql(query, params=[user_email]).to_pandas()
     except Exception as e:
-        st.error(f"Erreur lors du chargement des dossiers : {e}")
+        st.error(f"Erreur de chargement : {e}")
         return pd.DataFrame()
 
 
+# --- UI START ---
+st.title("📁 Gestion des Dossiers")
+
+# Gestion du message de succès après rechargement (Pattern "Flash Message")
+if st.session_state.get("dossier_created_msg"):
+    st.success(st.session_state["dossier_created_msg"])
+    st.balloons()
+    st.session_state["dossier_created_msg"] = None  # On efface le message
+
+# Les Onglets
+tab_liste, tab_creation = st.tabs(["📂 Mes Dossiers", "➕ Nouveau Dossier"])
+
 # ==============================================================================
-#  FIN DES FONCTIONS GLOBALLES
+# ONGLET 1 : LISTE ET SÉLECTION
 # ==============================================================================
+with tab_liste:
+    st.header("Sélectionner un dossier de travail")
 
-st.markdown(
-    f"""
-    <h1 style='text-align: center; color: #0055A4; font-size: 40px;'>
-        Espace de travail de <span style='color: #0055A4'>{display_name}</span>
-    </h1>
-    """,
-    unsafe_allow_html=True,
-)
-st.markdown("---")
+    user_email = st.session_state.get("user_email")
+    if user_email:
+        df_dossiers = load_user_dossiers(user_email)
 
-# --- 4. MENU DE NAVIGATION ---
-selected_tab = option_menu(
-    menu_title=None,
-    options=[
-        "Mes Dossiers en cours",
-        "Créer un nouveau Dossier",
-    ],
-    icons=["folder-check", "folder-plus"],
-    menu_icon="cast",
-    default_index=0,
-    orientation="horizontal",
-)
+        if not df_dossiers.empty:
+            # Affichage Interactif
+            # on_select="rerun" est CRUCIAL pour détecter le clic immédiatement
+            event = st.dataframe(
+                df_dossiers,
+                column_config={
+                    "DOSSIER_ID": None,  # On cache l'ID technique
+                    "PV_NUMBER": "N° PV",
+                    "NOM_DOSSIER": "Nom Dossier",
+                    "TYPE_ENQUETE": "Type Enquête",
+                    "DIRICTEUR_ENQUETE": "Directeur d'Enquête",
+                    "DATE_SAISINE": st.column_config.DateColumn(
+                        "Date Saisine", format="DD/MM/YYYY"
+                    ),
+                },
+                use_container_width=True,
+                hide_index=True,
+                selection_mode="single-row",  # Une seule ligne sélectionnable
+                on_select="rerun",
+            )
 
-# --- 5. CONTENU DES ONGLETS ---
+            # --- LOGIQUE DE REDIRECTION À LA SÉLECTION ---
+            if len(event.selection.rows) > 0:
+                # 1. Récupération de l'index de la ligne sélectionnée
+                selected_index = event.selection.rows[0]
 
-if selected_tab == "Mes Dossiers en cours":
+                # 2. Récupération des données de cette ligne
+                selected_dossier = df_dossiers.iloc[selected_index]
+                dossier_id = selected_dossier["DOSSIER_ID"]
+                dossier_nom = selected_dossier["NOM_DOSSIER"]
 
-    # Chargement
-    user_dossiers_df = load_user_dossiers(session, st.session_state["user_email"])
+                # 3. Mise en session
+                st.session_state.current_dossier_id = dossier_id
+                st.session_state.current_dossier_name = dossier_nom
 
-    if user_dossiers_df.empty:
-        st.info(
-            "Vous n'avez aucun dossier en cours. Allez dans l'onglet 'Créer un nouveau Dossier'."
-        )
+                # 4. Feedback visuel rapide
+                st.success(f"Dossier '{dossier_nom}' chargé. Redirection...")
+
+                # 5. REDIRECTION VERS MES DONNÉES
+                st.switch_page("pages/Mes_Donnees.py")
+
+        else:
+            st.info(
+                "Aucun dossier trouvé. Créez-en un dans l'onglet 'Nouveau Dossier'."
+            )
     else:
-        # Affichage du tableau propre
-        st.dataframe(
-            user_dossiers_df,
-            column_config={
-                "DOSSIER_ID": None,  # Caché
-                "PV_NUMBER": "N° PV",
-                "NOM_DOSSIER": "Nom du Dossier",
-                "TYPE_ENQUETE": "Type",
-                "DIRECTEUR_ENQUETE": "Directeur d'Enquête",
-                "DATE_SAISINE": "Date Saisine",
-            },
-            hide_index=True,
-            use_container_width=True,
-        )
+        st.error("Session expirée. Veuillez vous reconnecter.")
 
-        st.markdown("---")
-        st.subheader("📂 Ouvrir un dossier")
+# ==============================================================================
+# ONGLET 2 : CRÉATION
+# ==============================================================================
+with tab_creation:
+    st.header("Initialiser une nouvelle affaire")
 
-        # Création de la liste de sélection
-        # Gestion du cas où NOM_DOSSIER serait vide (pour les anciens dossiers)
-        dossier_options = {}
-        for index, row in user_dossiers_df.iterrows():
-            label_nom = row["NOM_DOSSIER"] if row["NOM_DOSSIER"] else "Sans nom"
-            label = f"{row['PV_NUMBER']} - {label_nom}"
-            dossier_options[label] = row["DOSSIER_ID"]
-
-        selected_dossier_label = st.selectbox(
-            "Choisissez un dossier à analyser :", options=dossier_options.keys()
-        )
-
-        # Bouton d'action pour valider le choix (plus ergonomique qu'un switch immédiat)
-        if st.button("Accéder au Dossier >>", type="primary"):
-            if selected_dossier_label:
-                st.session_state["current_dossier_id"] = dossier_options[
-                    selected_dossier_label
-                ]
-                st.success(f"Chargement du dossier {selected_dossier_label}...")
-
-                # CORRECTION NAVIGATION : Assurez-vous que le fichier existe
-                # Note : st.switch_page attend un chemin relatif au dossier racine ou dans /pages
-                try:
-                    st.switch_page(
-                        "pages/Mes_Donnees.py"
-                    )  # Adaptez le nom du fichier si nécessaire
-                except Exception as e:
-                    st.error(
-                        f"Page introuvable (Vérifiez le nom du fichier 'Mes_Donnees.py') : {e}"
-                    )
-
-elif selected_tab == "Créer un nouveau Dossier":
-
-    st.subheader("➕ Initialiser une nouvelle affaire")
-    with st.form("new_dossier_form"):
+    with st.form(
+        "form_creation_dossier", clear_on_submit=True
+    ):  # True ici pour vider après succès
         col1, col2 = st.columns(2)
-
         with col1:
-            pv_number = st.text_input(
-                "N° de PV *",
-                placeholder="ex: 02489/0000/2025",
-                help="Format recommandé : CODE_UNITE/NUMERO/ANNEE",
-            )
+            pv_number = st.text_input("Numéro de PV *", placeholder="Ex: 12345/2025")
             nom_dossier = st.text_input(
-                "Nom du Dossier (Opération)", placeholder="ex: OP STUPS 38"
+                "Nom de l'opération *", placeholder="Ex: OP STUPS"
             )
-
-        with col2:
-            directeur_enquete = st.text_input("Nom du Directeur d'Enquête *")
             type_enquete = st.selectbox(
-                "Type d'Enquête",
-                options=[
-                    "Enquête Préliminaire",
-                    "Enquête de Flagrance",
-                    "Commission Rogatoire",
-                    "Renseignement Administratif",
-                    "Autre",
-                ],
+                "Cadre *", ["", "Flagrance", "Préliminaire", "Commission Rogatoire"]
             )
+        with col2:
+            directeur_enquete = st.text_input("Directeur d'Enquête *")
+            date_saisine = st.date_input("Date de saisine *", value=date.today())
 
-        date_saisine = st.date_input("Date de Saisine", datetime.date.today())
+        submit = st.form_submit_button("Créer le dossier", type="primary")
 
-        st.markdown("*Champs obligatoires")
-        submitted = st.form_submit_button("Créer le dossier", use_container_width=True)
+    if submit:
+        # Validation
+        required_fields = {
+            "Numéro de PV": pv_number,
+            "Nom du dossier": nom_dossier,
+            "Cadre d'enquête": type_enquete,
+            "Directeur d'Enquête": directeur_enquete,
+        }
+        missing = [k for k, v in required_fields.items() if not v]
 
-    if submitted:
-        if not pv_number or not directeur_enquete:
-            st.error("Le N° de PV et le Nom du Directeur d'Enquête sont obligatoires.")
+        if missing:
+            st.error(f"⛔ Champs manquants : {', '.join(missing)}")
         else:
             try:
-                with st.spinner("Création du dossier dans Snowflake..."):
-                    new_dossier_id = str(uuid.uuid4())
-                    # On n'envoie PAS le CREATED_AT depuis Python pour éviter l'erreur de timestamp
-                    # Snowflake utilisera son DEFAULT CURRENT_TIMESTAMP()
-                    user_email = st.session_state["user_email"]
+                # Préparation des données
+                new_id = str(uuid.uuid4())
+                email = st.session_state.user_email
 
-                    new_dossier_data = {
-                        "DOSSIER_ID": [new_dossier_id],
-                        "PV_NUMBER": [pv_number],
-                        "NOM_DOSSIER": [nom_dossier],
-                        "TYPE_ENQUETE": [type_enquete],
-                        "DIRECTEUR_ENQUETE": [directeur_enquete],
-                        "DATE_SAISINE": [date_saisine],
-                        "CREATED_BY_USER_EMAIL": [user_email],
-                    }
-                    new_dossier_df = pd.DataFrame(new_dossier_data)
+                df_new = pd.DataFrame(
+                    [
+                        {
+                            "DOSSIER_ID": new_id,
+                            "PV_NUMBER": pv_number,
+                            "NOM_DOSSIER": nom_dossier.strip().upper(),
+                            "TYPE_ENQUETE": type_enquete.strip().upper(),
+                            "DIRECTEUR_ENQUETE": directeur_enquete.strip().upper(),
+                            "DATE_SAISINE": date_saisine,
+                            "CREATED_BY_USER_EMAIL": email,
+                        }
+                    ]
+                )
 
-                    session.write_pandas(
-                        new_dossier_df,
-                        table_name="DOSSIERS",
-                        database="DOSSIERS_DB",
-                        schema="PROD",
-                        auto_create_table=False,
-                        overwrite=False,
-                    )
+                # Insertion Snowflake
+                session.write_pandas(
+                    df_new,
+                    "DOSSIERS",
+                    database="DOSSIERS_DB",
+                    schema="PROD",
+                    auto_create_table=False,
+                    overwrite=False,
+                )
 
-                st.success(f"Dossier {pv_number} créé avec succès !")
-                st.balloons()
+                # --- SUCCÈS : ON RESTE SUR LA PAGE ---
 
-                # Mise à jour du contexte
+                # 1. On vide le cache pour forcer le rechargement de la liste dans l'onglet 1
                 load_user_dossiers.clear()
-                st.session_state["current_dossier_id"] = new_dossier_id
 
-                # Redirection immédiate vers l'ingestion
-                try:
-                    st.switch_page("pages/Mes_Donnees.py")
-                except:
-                    st.warning(
-                        "Dossier créé, mais impossible de rediriger vers Mes_Donnees (fichier introuvable)."
-                    )
+                # 2. On prépare un message pour le rechargement
+                st.session_state["dossier_created_msg"] = (
+                    f"✅ Dossier {pv_number} créé ! Retrouvez-le dans l'onglet 'Mes Dossiers'."
+                )
 
-            except SnowparkSQLException as e:
-                st.error(f"Erreur SQL : {e.message}")
+                # 3. On recharge la page (st.rerun ramène souvent au premier onglet par défaut, ce qui est parfait ici)
+                st.rerun()
+
             except Exception as e:
-                st.error(f"Une erreur inattendue est survenue : {e}")
+                st.error(f"Erreur technique : {e}")
