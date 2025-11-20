@@ -28,7 +28,7 @@ if not session:
 # --- 2. Vérification de l'Authentification ---
 if not st.session_state.get("is_logged_in", False):
     st.error("Accès refusé. Veuillez vous authentifier.")
-    st.page_link("pages/1_Authentification.py", label="Retour à l'authentification")
+    st.page_link("pages/Authentification.py", label="Retour à l'authentification")
     st.stop()
 
 # --- 3. HEADER ET FORMATAGE DU NOM ---
@@ -79,7 +79,6 @@ def load_user_dossiers(_session, user_email):
 #  FIN DES FONCTIONS GLOBALLES
 # ==============================================================================
 
-# CORRECTION HTML : Ajout du span ouvrant pour la couleur
 st.markdown(
     f"""
     <h1 style='text-align: center; color: #0055A4; font-size: 40px;'>
