@@ -3,6 +3,7 @@ from snowflake.snowpark.session import Session
 from snowflake.snowpark.exceptions import SnowparkSQLException
 import bcrypt
 import re
+from utils import validate_password_strength
 
 
 # --- 1. CONNEXION SNOWFLAKE ---
@@ -36,7 +37,7 @@ if st.session_state.is_logged_in:
         f"Vous êtes déjà connecté en tant que : **{st.session_state.user_email}**"
     )
     st.page_link(
-        "pages/2_Gestion_Dossiers.py", label="Accéder à l'application", icon="📁"
+        "pages/Gestion_Dossiers.py", label="Accéder à l'application", icon="📁"
     )
     st.stop()
 
@@ -66,9 +67,7 @@ with tabs[0]:
             "Email de connexion", placeholder="prenom.nom@gendarmerie.interieur.gouv.fr"
         )
         password_connexion = st.text_input("Mot de passe", type="password")
-        submitted_connexion = st.form_submit_button(
-            "Se connecter", use_container_width=True
-        )
+        submitted_connexion = st.form_submit_button("Se connecter", width="stretch")
 
         if submitted_connexion:
             if not email_connexion or not password_connexion:
@@ -98,7 +97,7 @@ with tabs[0]:
                             st.session_state.authenticated = True
 
                             # Redirection
-                            st.switch_page("Gestion_Dossiers.py")
+                            st.switch_page("pages/Gestion_Dossiers.py")
                         else:
                             st.error("Mot de passe incorrect.")
                     else:
@@ -118,9 +117,11 @@ with tabs[1]:
             - Le mot de passe doit être sécurisé.
             """
         )
+        user_inscription = st.text_input("Nom d'utilisateur", placeholder="prenom nom")
         email_inscription = st.text_input(
             "Email Gendarmerie", placeholder="prenom.nom@gendarmerie.interieur.gouv.fr"
         )
+        service_inscription = st.text_input("Service / Unité")
         password_inscription = st.text_input("Mot de passe", type="password")
 
         submitted_inscription = st.form_submit_button(
@@ -131,11 +132,16 @@ with tabs[1]:
             # --- Validation des entrées ---
             if not email_inscription or not password_inscription:
                 st.error("Tous les champs sont obligatoires.")
-            elif not email_inscription.endswith("@gendarmerie.interieur.gouv.fr"):
+            # Validation du mot de passe
+            is_valid_pass, error_msg = validate_password_strength(password_inscription)
+
+            if not email_inscription.endswith("@gendarmerie.interieur.gouv.fr"):
                 st.error("L'email doit être une adresse Gendarmerie valide.")
-            # (Ici, vous devriez ajouter une vraie validation de force de mot de passe)
-            elif len(password_inscription) < 12:
-                st.error("Le mot de passe doit faire au moins 12 caractères.")
+
+            elif not is_valid_pass:
+                # On affiche le message d'erreur précis retourné par la fonction
+                st.error(f"Mot de passe trop faible : {error_msg}")
+
             else:
                 # --- Hachage du mot de passe (JAMAIS en clair) ---
                 try:
@@ -149,13 +155,19 @@ with tabs[1]:
                 # --- Insertion dans Snowflake ---
                 try:
                     query = """
-                        INSERT INTO AUTH_DB.PROD.USERS (EMAIL, PASSWORD_HASH)
-                        VALUES (?, ?);
+                        INSERT INTO AUTH_DB.PROD.USERS (NOM_PRENOM,EMAIL,SERVICE, PASSWORD_HASH)
+                        VALUES (?, ?, ?, ?);
                     """
 
                     # Exécution Snowpark
                     session.sql(
-                        query, params=[email_inscription, hashed_password]
+                        query,
+                        params=[
+                            user_inscription,
+                            email_inscription,
+                            service_inscription,
+                            hashed_password,
+                        ],
                     ).collect()
 
                     st.success(
