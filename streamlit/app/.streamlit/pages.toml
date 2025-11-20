@@ -15,8 +15,13 @@ icon = "🔒"
 # Page 3: Le hub principal (privé)
 [[pages]]
 path = "pages/Gestion_Dossiers.py"
-name = "Gestion des Dossiers"
+name = "Gestion_Dossiers"
 icon = "📁"
+
+[[pages]]
+path = "pages/Mes_Donnees.py"
+name = "Mes_Donnees"
+icon = "📄"
 
 # Une section pour les outils d'analyse (privés)
 #[[pages]]
