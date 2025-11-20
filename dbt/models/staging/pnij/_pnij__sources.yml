@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: pnij_src
+    database: RAW_DATA      # La base définie dans notre script SQL 00_init
+    schema: PNIJ_SRC        # Le schéma défini dans notre script SQL
+    tables:
+      - name: RAW_MT20
+      - name: RAW_MT24
+      - name: RAW_HREF_SFR
+      - name: RAW_HREF_EVENTS_ORANGE
+      - name: RAW_HREF_CELLS_ORANGE
+      - name: RAW_HREF_BOUYGUES
+      - name: RAW_ANNUAIRE
