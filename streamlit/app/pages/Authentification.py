@@ -3,183 +3,202 @@ from snowflake.snowpark.session import Session
 from snowflake.snowpark.exceptions import SnowparkSQLException
 import bcrypt
 import re
-from utils import validate_password_strength
+
+# Import du module de validation (Architecture modulaire)
+from modules.utils import validate_password_strength
 
 
-# --- 1. CONNEXION SNOWFLAKE ---
+# ==============================================================================
+# 1. COUCHE INFRASTRUCTURE & CONNEXION
+# ==============================================================================
 @st.cache_resource
 def create_snowpark_session():
+    """
+    Établit une connexion Singleton à Snowflake.
+    @st.cache_resource garantit que la session est créée une seule fois
+    et partagée entre les rechargements du script pour la performance.
+    """
     try:
+        # Récupération sécurisée des secrets (jamais en dur dans le code)
         connection_parameters = st.secrets["snowflake"]
         session = Session.builder.configs(connection_parameters).create()
         return session
     except Exception as e:
-        st.error(f"Erreur de connexion à Snowflake : {e}")
+        st.error(f"CRITICAL: Échec de connexion au Data Warehouse : {e}")
         return None
 
 
 session = create_snowpark_session()
 
+# Arrêt d'urgence si l'infrastructure ne répond pas
 if not session:
-    st.error("Connexion à Snowflake échouée. Vérifiez la configuration.")
+    st.error("Service indisponible. Contactez l'administrateur.")
     st.stop()
 
-# --- 2. GESTION DE L'ÉTAT DE SESSION ---
-# Initialisation simplifiée
+# ==============================================================================
+# 2. GESTION DE L'ÉTAT (SESSION STATE MANAGEMENT)
+# ==============================================================================
+# Initialisation des variables de session pour persister l'état entre les reruns
 if "is_logged_in" not in st.session_state:
     st.session_state.is_logged_in = False
 if "user_email" not in st.session_state:
     st.session_state.user_email = None
 
-# Si déjà connecté, on n'affiche pas la page
+# Redirection automatique : UX pour éviter de voir le login si déjà connecté
 if st.session_state.is_logged_in:
-    st.success(
-        f"Vous êtes déjà connecté en tant que : **{st.session_state.user_email}**"
-    )
-    st.page_link(
-        "pages/Gestion_Dossiers.py", label="Accéder à l'application", icon="📁"
-    )
-    st.stop()
+    st.success(f"Session active : **{st.session_state.user_email}**")
+    st.page_link("pages/Gestion_Dossiers.py", label="Accéder au Dashboard", icon="📁")
+    st.stop()  # Stoppe l'exécution ici pour ne pas charger le reste de la page login
 
-# --- 3. INTERFACE (Votre UI) ---
+# ==============================================================================
+# 3. INTERFACE UTILISATEUR (FRONTEND)
+# ==============================================================================
 st.markdown(
     """
-    <div style='text-align: center; color: #d8a824; font-family: "IM Fell French Canon SC", "Playwrite IN", monospace; font-size: 18px; padding-top: 10px;'>
-        <h1>
-            💥 Bienvenue dans Telephony-Insights 💥
-        </h1>
+    <div style='text-align: center; color: #d8a824; font-family: "IM Fell French Canon SC", monospace; font-size: 18px; padding-top: 10px;'>
+        <h1>💥 Bienvenue dans Telephony-Insights 💥</h1>
     </div>
     """,
     unsafe_allow_html=True,
 )
-
 st.markdown("---")
-
-st.warning("Veuillez vous inscrire ou vous connecter pour accéder à votre Dashboard.")
+st.warning("Authentification requise pour accéder aux données sensibles.")
 
 tabs = st.tabs(["🔒 Connexion", "📝 Inscription"])
 
-# --- 4. LOGIQUE DE CONNEXION (Simplifiée) ---
+# ==============================================================================
+# 4. LOGIQUE DE CONNEXION (LOGIN)
+# ==============================================================================
 with tabs[0]:
     with st.form("connexion_form"):
         st.header("Connexion")
         email_connexion = st.text_input(
-            "Email de connexion", placeholder="prenom.nom@gendarmerie.interieur.gouv.fr"
+            "Email", placeholder="prenom.nom@gendarmerie.interieur.gouv.fr"
         )
         password_connexion = st.text_input("Mot de passe", type="password")
         submitted_connexion = st.form_submit_button("Se connecter", width="stretch")
 
         if submitted_connexion:
             if not email_connexion or not password_connexion:
-                st.error("Veuillez saisir l'email et le mot de passe.")
+                st.error("Identifiants manquants.")
             else:
                 try:
-                    # Cible : AUTH_DB.PROD.USERS
-                    query = "SELECT PASSWORD_HASH FROM USERS WHERE EMAIL = ?;"
+                    # Data Cleaning : Indispensable pour matcher le format en base (minuscule)
+                    email_login_clean = email_connexion.strip().lower()
 
-                    # Exécution Snowpark
-                    result = session.sql(query, params=[email_connexion]).collect()
+                    # Requête sécurisée (Parameterized Query) contre Injection SQL
+                    query = (
+                        "SELECT PASSWORD_HASH FROM AUTH_DB.PROD.USERS WHERE EMAIL = ?;"
+                    )
+                    result = session.sql(query, params=[email_login_clean]).collect()
 
                     if result:
                         stored_hash = result[0]["PASSWORD_HASH"]
-
-                        # Vérification du hash
+                        # Vérification cryptographique du mot de passe (Bcrypt gère le sel automatiquement)
                         if bcrypt.checkpw(
                             password_connexion.encode("utf-8"),
                             stored_hash.encode("utf-8"),
                         ):
-                            st.success("Connexion réussie !")
-                            st.balloons()
 
-                            # Stockage en session
+                            # Mise à jour de la session
                             st.session_state.is_logged_in = True
-                            st.session_state.user_email = email_connexion
+                            st.session_state.user_email = email_login_clean
                             st.session_state.authenticated = True
 
-                            # Redirection
+                            st.success("Authentification réussie.")
                             st.switch_page("pages/Gestion_Dossiers.py")
                         else:
-                            st.error("Mot de passe incorrect.")
+                            st.error("Échec : Mot de passe incorrect.")
                     else:
-                        st.error("Utilisateur non trouvé.")
+                        st.error("Échec : Utilisateur inconnu.")
 
                 except Exception as e:
-                    st.error(f"Erreur lors de la connexion : {e}")
+                    st.error(f"Erreur système lors de la connexion : {e}")
 
-# --- 5. LOGIQUE D'INSCRIPTION (Simplifiée) ---
+# ==============================================================================
+# 5. LOGIQUE D'INSCRIPTION (SIGN UP)
+# ==============================================================================
 with tabs[1]:
-    with st.form("registration_form", clear_on_submit=True):
-        st.header("Inscription")
+    st.header("Créer un compte")
 
-        st.markdown(
-            """
-            - L'email doit se terminer par `@gendarmerie.interieur.gouv.fr`.
-            - Le mot de passe doit être sécurisé.
-            """
+    # --- Pattern "Delayed Feedback" ---
+    # Affiche le succès AVANT de redessiner le formulaire vide
+    if st.session_state.get("success_inscription_msg"):
+        st.success(st.session_state["success_inscription_msg"])
+        st.balloons()
+        st.session_state["success_inscription_msg"] = None  # Reset du message
+
+    # --- Pattern "Form Reset Flag" ---
+    # Vide les variables liées aux widgets AVANT leur instanciation
+    if st.session_state.get("reset_inscription_form"):
+        st.session_state["reg_user"] = ""
+        st.session_state["reg_email"] = ""
+        st.session_state["reg_service"] = ""
+        st.session_state["reg_pass"] = ""
+        st.session_state["reset_inscription_form"] = False
+
+    # Formulaire avec clear_on_submit=False pour garder le contrôle manuel via Session State
+    with st.form("form_inscription", clear_on_submit=False):
+        # Utilisation de clés (key) pour le binding avec Session State
+        user_inscription = st.text_input("Nom & Prénom", key="reg_user")
+        email_inscription = st.text_input("Email Gendarmerie", key="reg_email")
+        service_inscription = st.text_input("Unité / Service", key="reg_service")
+        password_inscription = st.text_input(
+            "Mot de passe", type="password", key="reg_pass"
         )
-        user_inscription = st.text_input("Nom d'utilisateur", placeholder="prenom nom")
-        email_inscription = st.text_input(
-            "Email Gendarmerie", placeholder="prenom.nom@gendarmerie.interieur.gouv.fr"
-        )
-        service_inscription = st.text_input("Service / Unité")
-        password_inscription = st.text_input("Mot de passe", type="password")
+        submitted_inscription = st.form_submit_button("S'inscrire")
 
-        submitted_inscription = st.form_submit_button(
-            "S'inscrire", use_container_width=True
-        )
+    if submitted_inscription:
+        # Validation métier
+        is_valid_pass, error_msg = validate_password_strength(password_inscription)
 
-        if submitted_inscription:
-            # --- Validation des entrées ---
-            if not email_inscription or not password_inscription:
-                st.error("Tous les champs sont obligatoires.")
-            # Validation du mot de passe
-            is_valid_pass, error_msg = validate_password_strength(password_inscription)
+        if not email_inscription or not password_inscription or not user_inscription:
+            st.error("Tous les champs sont obligatoires.")
+        elif not email_inscription.endswith("@gendarmerie.interieur.gouv.fr"):
+            st.error("Domaine de messagerie non autorisé.")
+        elif not is_valid_pass:
+            st.error(f"Sécurité mot de passe : {error_msg}")
+        else:
+            # --- Data Sanitization (Normalisation) ---
+            user_clean = user_inscription.strip().upper()  # Standardisation MAJ
+            service_clean = service_inscription.strip().upper()  # Standardisation MAJ
+            email_clean = (
+                email_inscription.strip().lower()
+            )  # Standardisation min (Critique pour login)
 
-            if not email_inscription.endswith("@gendarmerie.interieur.gouv.fr"):
-                st.error("L'email doit être une adresse Gendarmerie valide.")
+            # --- Sécurisation (Hashing) ---
+            try:
+                hashed_password = bcrypt.hashpw(
+                    password_inscription.encode("utf-8"), bcrypt.gensalt()
+                ).decode("utf-8")
+            except Exception as e:
+                st.error(f"Erreur de chiffrement : {e}")
+                st.stop()
 
-            elif not is_valid_pass:
-                # On affiche le message d'erreur précis retourné par la fonction
-                st.error(f"Mot de passe trop faible : {error_msg}")
+            # --- Persistance (Snowflake) ---
+            try:
+                query = """
+                    INSERT INTO AUTH_DB.PROD.USERS (NOM_PRENOM, EMAIL, SERVICE, PASSWORD_HASH)
+                    VALUES (?, ?, ?, ?);
+                """
+                session.sql(
+                    query,
+                    params=[user_clean, email_clean, service_clean, hashed_password],
+                ).collect()
 
-            else:
-                # --- Hachage du mot de passe (JAMAIS en clair) ---
-                try:
-                    hashed_password = bcrypt.hashpw(
-                        password_inscription.encode("utf-8"), bcrypt.gensalt()
-                    ).decode("utf-8")
-                except Exception as e:
-                    st.error(f"Erreur lors de la sécurisation du mot de passe: {e}")
-                    st.stop()
+                # Préparation du prochain affichage (Pattern Rerun)
+                st.session_state["success_inscription_msg"] = (
+                    f"Compte créé pour {user_clean}. Veuillez vous connecter."
+                )
+                st.session_state["reset_inscription_form"] = True
 
-                # --- Insertion dans Snowflake ---
-                try:
-                    query = """
-                        INSERT INTO AUTH_DB.PROD.USERS (NOM_PRENOM,EMAIL,SERVICE, PASSWORD_HASH)
-                        VALUES (?, ?, ?, ?);
-                    """
+                # Force le rechargement pour appliquer le nettoyage et afficher le succès
+                st.rerun()
 
-                    # Exécution Snowpark
-                    session.sql(
-                        query,
-                        params=[
-                            user_inscription,
-                            email_inscription,
-                            service_inscription,
-                            hashed_password,
-                        ],
-                    ).collect()
-
-                    st.success(
-                        f"Utilisateur '{email_inscription}' créé avec succès ! Vous pouvez maintenant vous connecter."
-                    )
-                    st.balloons()
-
-                except SnowparkSQLException as e:
-                    # Gestion des erreurs courantes (ex: doublons)
-                    if "PRIMARY KEY" in str(e) or "UNIQUE constraint" in str(e):
-                        st.error("Erreur : Cet email est déjà utilisé.")
-                    else:
-                        st.error(f"Erreur lors de l'enregistrement : {e}")
-                except Exception as e:
-                    st.error(f"Une erreur inattendue est survenue : {e}")
+            except SnowparkSQLException as e:
+                if "PRIMARY KEY" in str(e) or "UNIQUE constraint" in str(e):
+                    st.error("Cet email possède déjà un compte actif.")
+                else:
+                    st.error(f"Erreur Base de Données : {e}")
+            except Exception as e:
+                st.error(f"Erreur inattendue : {e}")
