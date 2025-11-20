@@ -1,5 +1,7 @@
-name: 'snowflake_dbt_telephony_insights'
+name: 'telephony_insights'
 version: '1.0.0'
+config-version: 2
+
 profile: 'snowflake_dbt_telephony_insights_raw'
 
 model-paths: ["models"]
@@ -9,16 +11,22 @@ seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
+target-path: "target"
 clean-targets:
   - "target"
   - "dbt_packages"
 
+# CONFIGURATION DES SCHÉMAS CIBLES
 models:
-  snowflake_dbt_telephony_insights:
+  telephony_insights:
+    # Configuration pour la couche STAGING
     staging:
-      +materialized: view
-      +snowflake_warehouse: tel_insights_etl
-    # Configuration pour le dossier 'marts'
+      +database: STAGING        # Force l'écriture dans la DB STAGING
+      +schema: DBT_STAGING      # Force le schéma
+      +materialized: view       # Les stagings sont souvent des vues (plus rapide)
+
+    # Configuration pour la couche MARTS
     marts:
-      +materialized: table # Les modèles marts seront des tables
-      +schema: MARTS       # Résultat: ANALYTICS_DEV.MARTS.fct_communications
+      +database: MARTS          # Force l'écriture dans la DB MARTS
+      +schema: PROD             # Force le schéma
+      +materialized: table      # Les tables finales sont des tables (pour la perf Streamlit)

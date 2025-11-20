@@ -1,0 +1,139 @@
+version: 2
+
+models:
+  # ==========================================================================
+  # MODÈLE UNIFIÉ MT20 (ANALYSES DE LIGNE)
+  # ==========================================================================
+  - name: stg_mt20
+    description: >
+      Modèle de STAGING unifié pour les MT20 (Toutes sources : Orange, SFR, Bouygues...).
+      Nettoyage des identifiants, unification des dates et typage fort.
+      Une ligne = Un événement de communication.
+
+    columns:
+      # --- 1. Métadonnées Techniques & Dossier ---
+      - name: id_dossier
+        description: "Identifiant technique unique du dossier (Lien vers table DOSSIERS)."
+        tests:
+          - not_null
+
+      - name: nom_fichier_source
+        description: "Nom du fichier CSV d'origine."
+
+      - name: date_chargement
+        description: "Date et heure de l'ingestion dans Snowflake."
+
+      - name: nom_cible_formulaire
+        description: "Nom de la cible saisi par l'enquêteur lors de l'import."
+
+      - name: msisdn_cible_formulaire
+        description: "Numéro de la cible saisi par l'enquêteur."
+
+      # --- 2. Détails Événement ---
+      - name: date_heure
+        description: "Horodatage de l'événement unifié. Gestion automatique UTC (SFR) vs Local (Orange)."
+        tests:
+          - not_null
+
+      - name: type_evenement
+        description: "Type d'événement (DATA, VOIX, SMS...)."
+
+      - name: sens_communication
+        description: "Direction (ENTRANT, SORTANT)."
+        tests:
+          - accepted_values:
+              arguments: ['ENTRANT', 'SORTANT', 'INCONNU', 'NON APPLICABLE']
+
+      - name: duree_secondes
+        description: "Durée de l'appel en secondes (ou volume data)."
+
+      # --- 3. Identifiants (Nettoyés) ---
+      - name: msisdn_ligne_analysee
+        description: "Numéro de la ligne objet de la réquisition (nettoyé des caractères spéciaux)."
+        tests:
+          - not_null
+
+      - name: msisdn_correspondant
+        description: "Numéro du correspondant."
+
+      - name: imsi
+        description: "IMSI de la carte SIM utilisée."
+
+      - name: imei
+        description: "IMEI du téléphone utilisé."
+
+      # --- 4. Localisation (Brute nettoyée) ---
+      - name: coord_x_lambert
+        description: "Coordonnée X (Souvent Lambert II ou 93) nettoyée (float)."
+
+      - name: coord_y_lambert
+        description: "Coordonnée Y (Souvent Lambert II ou 93) nettoyée (float)."
+
+      - name: type_projection
+        description: "Type de projection déclaré dans le fichier source."
+
+      - name: id_cellule
+        description: "Identifiant technique de l'antenne (CellID)."
+
+      - name: adresse_antenne
+        description: "Adresse de l'antenne relais."
+
+      - name: cp_antenne
+        description: "Code postal de l'antenne."
+
+      - name: ville_antenne
+        description: "Ville de l'antenne."
+
+      - name: pays_antenne
+        description: "Pays de l'antenne."
+
+  # ==========================================================================
+  # MODÈLE UNIFIÉ MT24 (ANALYSES DE BOÎTIER/IMEI)
+  # ==========================================================================
+  - name: stg_mt24
+    description: >
+      Modèle de STAGING unifié pour les MT24 (Toutes sources).
+      Centré sur l'IMEI.
+
+    columns:
+      # --- 1. Métadonnées ---
+      - name: id_dossier
+        tests:
+          - not_null
+      - name: nom_fichier_source
+      - name: date_chargement
+      - name: nom_cible_formulaire
+      - name: imei_cible_formulaire
+        description: "IMEI cible saisi par l'enquêteur."
+
+      # --- 2. Événement ---
+      - name: date_heure
+        tests:
+          - not_null
+      - name: type_evenement
+      - name: sens_communication
+      - name: duree_secondes
+
+      # --- 3. Identifiants (Focus IMEI) ---
+      - name: imei_appareil
+        description: "L'IMEI de l'appareil traqué (nettoyé)."
+        tests:
+          - not_null
+
+      - name: imsi_carte_sim
+        description: "L'IMSI de la carte SIM insérée dans l'appareil."
+
+      - name: msisdn_associe
+        description: "Le numéro de téléphone (MSISDN) de la carte SIM insérée (Souvent colonne CIBLE dans le CSV)."
+
+      - name: msisdn_correspondant
+
+      # --- 4. Localisation ---
+      - name: coord_x_lambert
+      - name: coord_y_lambert
+      - name: type_projection
+      - name: id_cellule
+      - name: adresse_antenne
+      - name: cp_antenne
+      - name: ville_antenne
+      - name: pays_antenne
