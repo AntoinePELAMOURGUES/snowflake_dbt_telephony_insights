@@ -1,32 +1,117 @@
-use role sysadmin;
-use warehouse compute_wh;
-use database auth_db;
+-- ============================================================================
+-- 🛠️ WORKSHEET DE DIAGNOSTIC & NETTOYAGE - PROJET TELEPHONY INSIGHTS
+-- ============================================================================
+USE ROLE SYSADMIN;
+USE WAREHOUSE COMPUTE_WH;
 
-select * from auth_db.prod.users limit 10;
+-- ============================================================================
+-- 1. AUTH & ADMINISTRATION (Dossiers, Utilisateurs)
+-- ============================================================================
+-- Vérifier les utilisateurs inscrits
+SELECT * FROM AUTH_DB.PROD.USERS LIMIT 10;
 
-truncate table auth_db.prod.users;
+-- Vérifier les dossiers d'enquête actifs
+SELECT * FROM DOSSIERS_DB.PROD.DOSSIERS LIMIT 10;
 
-select * from dossiers_db.prod.dossiers limit 10;
-
-select * from raw_data.pnij_src.raw_mt24 limit 10;
-
-truncate table raw_data.pnij_src.raw_mt20;
-
-truncate table raw_data.pnij_src.raw_mt24;
-
-truncate table raw_data.pnij_src.raw_href_bouygues;
+-- Vérifier l'historique des fichiers chargés (Logs d'ingestion)
+SELECT * FROM DOSSIERS_DB.PROD.FILES_LOG ORDER BY UPLOADED_AT DESC LIMIT 20;
 
 
-select distinct(source_filename) from raw_data.pnij_src.raw_mt20 limit 10;
+-- ============================================================================
+-- 2. COUCHE RAW (Données Brutes)
+-- Vérifier si l'ingestion Streamlit a bien fonctionné
+-- ============================================================================
+-- Communications (MT20 / MT24)
+SELECT 'RAW_MT20' as source, count(*) as nb_lignes FROM RAW_DATA.PNIJ_SRC.RAW_MT20
+UNION ALL
+SELECT 'RAW_MT24', count(*) FROM RAW_DATA.PNIJ_SRC.RAW_MT24;
 
-select * from dossiers_db.prod.files_log;
+-- Aperçu MT20 (Lignes)
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_MT20 LIMIT 10;
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_MT20
+WHERE SOURCE_FILENAME LIKE '%FREE%'
+LIMIT 10;-- Aperçu MT24 (Boîtiers)
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_MT24 LIMIT 10;
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_MT24
+WHERE SOURCE_FILENAME LIKE '%BOUYGUES%'
+LIMIT 10;-- Aperçu MT24 (Boîtiers)
+-- Annuaire
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_ANNUAIRE LIMIT 10;
 
-truncate table dossiers_db.prod.files_log;
+-- Données Antennes (HREF)
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_HREF_BOUYGUES LIMIT 5;
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_HREF_SFR LIMIT 5;
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_HREF_EVENTS_ORANGE LIMIT 5;
 
-select * from RAW_DATA.PNIJ_SRC.RAW_HREF_BOUYGUES limit 10;
 
-drop schema staging.stg_dbt_staging;
+-- ============================================================================
+-- 3. COUCHE STAGING (Données Nettoyées via dbt)
+-- Vérifier si tes modèles dbt 'stg' transforment bien les données
+-- ============================================================================
+-- Vérifier le parsing des dates et la géolocalisation
+SELECT * FROM STAGING.DBT_STAGING.STG_MT_BOUYGUES LIMIT 20;
+SELECT * FROM STAGING.DBT_STAGING.STG_MT_FREE LIMIT 20;
 
-select * from staging.dbt_staging.stg_mt20 limit 10;
+SELECT * FROM STAGING.DBT_STAGING.STG_MT_ORANGE LIMIT 20;
+SELECT * FROM STAGING.DBT_STAGING.STG_MT_SFR LIMIT 20;
 
-select * from staging.dbt_staging.stg_href_bouygues limit 10;
+-- Vérifier l'unification des événements antennes
+SELECT * FROM STAGING.DBT_STAGING.STG_HREF_EVENTS LIMIT 20;
+
+-- Vérifier l'annuaire propre
+SELECT * FROM STAGING.DBT_STAGING.STG_ANNUAIRE LIMIT 10;
+SELECT * FROM RAW_DATA.PNIJ_SRC.INT_COMMUNICATIONS_ALL LIMIT 20;
+
+-- ============================================================================
+-- 4. COUCHE MARTS (Données Finales pour Streamlit)
+-- C'est ce que ton appli Streamlit interroge pour les graphiques
+-- ============================================================================
+-- Table unifiée (MT20 + MT24)
+SELECT * FROM MARTS.PROD.FCT_COMMUNICATIONS
+ORDER BY DATE_HEURE_UTC_FR DESC
+LIMIT 50;
+
+-- Analyse des patterns (si tu as ce modèle)
+-- SELECT * FROM MARTS.PROD.DIM_PATTERNS_VIE LIMIT 10;
+
+
+-- ============================================================================
+-- 🚨 ZONE DE DANGER : RESET / TRUNCATE
+-- Décommenter les lignes uniquement pour vider les tables
+-- ============================================================================
+
+-- 1. Vider les Logs (Attention, l'appli ne saura plus quels fichiers sont chargés)
+-- TRUNCATE TABLE DOSSIERS_DB.PROD.FILES_LOG;
+
+-- 2. Vider les Données Brutes (RAW)
+-- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_MT20;
+-- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_MT24;
+-- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_ANNUAIRE;
+-- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_BOUYGUES;
+-- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_SFR;
+-- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_EVENTS_ORANGE;
+-- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_CELLS_ORANGE;
+
+-- 3. Vider les utilisateurs (Attention, tu ne pourras plus te connecter)
+-- TRUNCATE TABLE AUTH_DB.PROD.USERS;
+
+drop view raw_data.pnij_src.int_communications_all;
+
+select * from  STAGING.DBT_STAGING.int_communications_all where operateur='SFR' limit 100;
+
+SELECT * FROM RAW_DATA.PNIJ_SRC.RAW_MT20 LIMIT 10;
+
+select * from staging.intermediate.int_annuaire;
+
+select * from marts.prod.fct_communications limit 10;
+
+select * from marts.prod.fct_bornage_zones limit 50;
+
+select * from staging.intermediate.int_href_unified limit 50;
+
+select * from staging.dbt_staging.stg_href_sfr limit 50;
+select * from staging.dbt_staging.stg_href_orange limit 50;
+
+select * from raw_data.pnij_src.raw_href_events_orange limit 50;
+
+select * from staging.dbt_staging.stg_href_bouygues limit 50;

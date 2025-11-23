@@ -25,6 +25,11 @@ models:
       +schema: DBT_STAGING      # Force le schéma
       +materialized: view       # Les stagings sont souvent des vues (plus rapide)
 
+    intermediate:
+      +database: STAGING   # Force l'écriture dans la DB INTERMEDIATE
+      +schema: INTERMEDIATE # Force le schéma
+      +materialized: table      # Les intermédiaires sont des tables (pour les transformations)
+
     # Configuration pour la couche MARTS
     marts:
       +database: MARTS          # Force l'écriture dans la DB MARTS

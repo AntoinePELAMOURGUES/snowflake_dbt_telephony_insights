@@ -7,8 +7,10 @@ nettoyage AS (
         -- ==============================================================
         -- 1. MÉTADONNÉES DOSSIER & ZONE (Crucial pour la confrontation)
         -- ==============================================================
-        DOSSIER_ID              AS id_dossier,
-        SOURCE_FILENAME         AS nom_fichier_source,
+        DOSSIER_ID              AS dossier_id,
+        SOURCE_FILENAME         AS source_filename,
+        -- Métadonnées du formulaire (Zone)
+        UPPER(INPUT_ZONE_NAME) AS nom_zone_formulaire,
 
         -- L'identifiant de zone saisi dans Streamlit (ex: "1", "2")
         -- C'est la clé de jointure pour confronter avec Orange/SFR
