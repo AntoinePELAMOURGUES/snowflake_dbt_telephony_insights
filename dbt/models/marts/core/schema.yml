@@ -1,0 +1,38 @@
+version: 2
+
+models:
+
+# ==========================================================================
+  # COUCHE MARTS (DONNÉES FINALES POUR STREAMLIT)
+  # ==========================================================================
+  - name: fct_communications
+    description: >
+      Table de faits principale regroupant toutes les communications (MT20/MT24).
+      Enrichie avec les noms de l'annuaire et une adresse concaténée lisible.
+    columns:
+      - name: dossier_id
+      - name: date_heure
+
+      - name: nom_cible
+        description: "Nom identifié du propriétaire de la ligne/appareil."
+
+      - name: nom_correspondant
+        description: "Nom identifié de l'interlocuteur."
+
+      - name: lieu_communication_complet
+        description: "Adresse formatée (Voie + Complément + CP + Ville) sans espaces superflus."
+
+      - name: latitude
+        description: "Latitude GPS standardisée (WGS84)."
+      - name: longitude
+        description: "Longitude GPS standardisée (WGS84)."
+
+  - name: fct_bornage_zones
+    description: "Table de faits recensant tous les passages (bornages) dans les zones surveillées (HREF)."
+    columns:
+      - name: numero_zone
+        description: "Numéro de la zone définie par l'enquêteur (Clé de confrontation)."
+      - name: imsi
+        description: "L'identifiant unique traqué."
+      - name: latitude
+      - name: longitude
