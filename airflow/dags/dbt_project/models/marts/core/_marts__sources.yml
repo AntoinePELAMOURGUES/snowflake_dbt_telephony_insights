@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: marts_src
+    database: STAGING      # La base définie dans notre script SQL 00_init
+    schema: DBT_STAGING        # Le schéma défini dans notre script SQL
+    tables:
+      - name: STG_ANNUAIRE
+      - name: STG_MT20
+      - name: STG_MT24
+      - name: STG_HREF_SFR
+      - name: STG_HREF_EVENTS_ORANGE
+      - name: STG_HREF_CELLS_ORANGE
+      - name: STG_HREF_BOUYGUES

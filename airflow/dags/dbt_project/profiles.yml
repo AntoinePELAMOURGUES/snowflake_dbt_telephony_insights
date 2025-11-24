@@ -1,0 +1,15 @@
+snowflake_dbt_telephony_insights_raw: # Doit correspondre au nom dans dbt_project.yml
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      # On récupère les valeurs via les variables d'environnement
+      account: "{{ env_var('DBT_ACCOUNT') }}"
+      user: "{{ env_var('DBT_USER') }}"
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      role: "{{ env_var('DBT_ROLE') }}"
+      warehouse: "{{ env_var('DBT_WAREHOUSE') }}"
+      database: "{{ env_var('DBT_DATABASE') }}"
+      schema: "{{ env_var('DBT_SCHEMA') }}"
+      threads: 4
+      client_session_keep_alive: False
