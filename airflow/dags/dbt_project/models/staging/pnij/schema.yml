@@ -1,0 +1,321 @@
+version: 2
+
+models:
+  # ==========================================================================
+  # 1. ORANGE (MT20 + MT24)
+  # Spécificité : Coordonnées Lambert II Étendu / Dates propres
+  # ==========================================================================
+  - name: stg_mt_orange
+    description: >
+      Données unifiées Orange (Lignes + Boîtiers).
+      Source : PNIJ RAW_MT20 et RAW_MT24.
+      Géolocalisation : Lambert II (X/Y).
+    columns:
+      - name: dossier_id
+        tests: [not_null]
+      - name: source_filename
+      - name: source_type
+        description: "Origine de la donnée : 'MT20' (Ligne) ou 'MT24' (IMEI)."
+        tests:
+          - accepted_values: { arguments: ['MT20', 'MT24'] }
+      - name: operateur
+        description: "Toujours 'ORANGE'."
+
+      - name: date_heure_utc_fr
+        description: "Horodatage de la communication."
+        tests: [not_null]
+
+      - name: msisdn
+        description: "Numéro de la cible (ou de la SIM insérée pour MT24)."
+      - name: imsi
+      - name: imei
+
+      - name: type_communication
+      - name: direction
+      - name: duree_secondes
+      - name: msisdn_correspondant
+
+      - name: x_lambert
+        description: "Coordonnée X (Lambert II)."
+      - name: y_lambert
+        description: "Coordonnée Y (Lambert II)."
+      - name: latitude
+        description: "Toujours NULL pour Orange (calculé plus tard)."
+      - name: longitude
+        description: "Toujours NULL pour Orange (calculé plus tard)."
+
+  # ==========================================================================
+  # 2. SFR (MT20 + MT24)
+  # Spécificité : Coordonnées Lambert II / Dates avec suffixe 'UTC'
+  # ==========================================================================
+  - name: stg_mt_sfr
+    description: >
+      Données unifiées SFR (Lignes + Boîtiers).
+      Source : PNIJ RAW_MT20 et RAW_MT24.
+      Géolocalisation : Lambert II (X/Y).
+    columns:
+      - name: dossier_id
+        tests: [not_null]
+      - name: source_type
+        tests:
+          - accepted_values: { arguments: ['MT20', 'MT24'] }
+      - name: operateur
+        description: "Toujours 'SFR'."
+
+      - name: date_heure_utc_fr
+        tests: [not_null]
+
+      - name: msisdn
+      - name: imsi
+      - name: imei
+
+      - name: x_lambert
+      - name: y_lambert
+      - name: latitude
+        description: "NULL (Lambert)."
+      - name: longitude
+        description: "NULL (Lambert)."
+
+  # ==========================================================================
+  # 3. BOUYGUES (MT20 + MT24)
+  # Spécificité : Coordonnées WGS84 (GPS) / Dates propres
+  # ==========================================================================
+  - name: stg_mt_bouygues
+    description: >
+      Données unifiées Bouygues (Lignes + Boîtiers).
+      Source : PNIJ RAW_MT20 et RAW_MT24.
+      Géolocalisation : WGS84 (Lat/Lon direct).
+    columns:
+      - name: dossier_id
+        tests: [not_null]
+      - name: source_type
+        tests:
+          - accepted_values: { arguments: ['MT20', 'MT24'] }
+      - name: operateur
+        description: "Toujours 'BOUYGUES'."
+
+      - name: date_heure_utc_fr
+        tests: [not_null]
+
+      - name: msisdn
+      - name: imsi
+      - name: imei
+
+      - name: x_lambert
+        description: "NULL (WGS84)."
+      - name: y_lambert
+        description: "NULL (WGS84)."
+      - name: latitude
+        description: "Latitude GPS réelle."
+      - name: longitude
+        description: "Longitude GPS réelle."
+
+  # ==========================================================================
+  # 4. FREE (MT20 + MT24)
+  # Spécificité : Coordonnées WGS84 / Dates avec Timezone (UTC+1/2)
+  # ==========================================================================
+  - name: stg_mt_free
+    description: >
+      Données unifiées Free (Lignes + Boîtiers).
+      Source : PNIJ RAW_MT20 et RAW_MT24.
+      Géolocalisation : WGS84 (Lat/Lon direct).
+    columns:
+      - name: dossier_id
+        tests: [not_null]
+      - name: source_type
+        tests:
+          - accepted_values: { arguments: ['MT20', 'MT24'] }
+      - name: operateur
+        description: "Toujours 'FREE'."
+
+      - name: date_heure_utc_fr
+        tests: [not_null]
+
+      - name: msisdn
+      - name: imsi
+      - name: imei
+
+      - name: x_lambert
+        description: "NULL (WGS84)."
+      - name: y_lambert
+        description: "NULL (WGS84)."
+      - name: latitude
+        description: "Latitude GPS réelle."
+      - name: longitude
+        description: "Longitude GPS réelle."
+
+  # ==========================================================================
+  # 5. AUTRES TABLES (ANNUAIRE & HREF)
+  # ==========================================================================
+  - name: stg_annuaire
+    description: "Référentiel des abonnés."
+    columns:
+      - name: msisdn
+        tests: [not_null]
+      - name: nom
+      - name: prenom
+      - name: operateur
+
+# ==========================================================================
+  # HREF BOUYGUES (EVENTS SUR ANTENNES)
+  # ==========================================================================
+  - name: stg_href_bouygues
+    description: >
+      Données de bornage sur zone (HREF) pour Bouygues.
+      Permet d'identifier tous les IMSI passés par une liste d'antennes définies.
+      Géolocalisation : WGS84 (Latitude/Longitude).
+    columns:
+      # --- Clés de jointure ---
+      - name: dossier_id
+        description: "Identifiant technique du dossier."
+        tests: [not_null]
+
+      - name: numero_zone
+        description: "ID de la zone défini par l'enquêteur (ex: Zone 1 = Braquage, Zone 2 = Fuite)."
+        tests: [not_null]
+
+      - name: nom_fichier_source
+
+      # --- Temps & Event ---
+      - name: date_heure_utc_paris
+        description: "Horodatage de l'événement réseau."
+        tests: [not_null]
+
+      - name: code_evenement
+        description: "Code technique de l'événement (ex: L.U, HO...)."
+
+      - name: libelle_evenement
+        description: "Description lisible (ex: LOCATION UPDATE)."
+
+      # --- Identifiants (Cibles potentielles) ---
+      - name: imsi
+        description: "IMSI capté par l'antenne (Clé principale d'analyse)."
+        tests: [not_null]
+
+      - name: imei
+        description: "IMEI capté (si disponible)."
+
+      - name: msisdn
+        description: "Numéro de téléphone (souvent vide en HREF 4G, mais utile si présent)."
+
+      # --- Localisation ---
+      - name: latitude
+        description: "Latitude de l'antenne (WGS84)."
+
+      - name: longitude
+        description: "Longitude de l'antenne (WGS84)."
+
+      - name: ville_antenne
+      - name: cp_antenne
+      - name: adresse_antenne
+        description: "Adresse concaténée de l'antenne."
+
+      # --- Technique ---
+      - name: technologie
+        description: "Technologie réseau (2G, 3G, 4G...)."
+
+      - name: modele_imei
+        description: "Type d'appareil déduit (Smartphone, Clé 4G...)."
+
+
+# ==========================================================================
+  # HREF ORANGE (EVENTS SUR ANTENNES)
+  # Spécificité : Jointure Events <-> Cells requise + Lambert II
+  # ==========================================================================
+  - name: stg_href_orange
+    description: >
+      Données de bornage sur zone (HREF) pour Orange.
+      Données issues de la jointure entre les événements et le référentiel cellules.
+      Géolocalisation : Lambert II (X/Y).
+    columns:
+      # --- Clés ---
+      - name: dossier_id
+        tests: [not_null]
+
+      - name: numero_zone
+        description: "ID de la zone pour l'analyse croisée (ex: 1, 2)."
+        tests: [not_null]
+
+      - name: nom_zone_formulaire
+        description: "Nom donné à la zone (ex: 'Banque')."
+
+      # --- Temps ---
+      - name: date_heure_utc_paris
+        description: "Heure de l'événement réseau."
+        tests: [not_null]
+
+      # --- Identifiants ---
+      - name: imsi
+        description: "L'identifiant principal en HREF."
+        tests: [not_null]
+
+      - name: imei
+      - name: msisdn
+
+      # --- Localisation (Lambert) ---
+      - name: x_lambert
+        description: "Coordonnée X Lambert."
+      - name: y_lambert
+        description: "Coordonnée Y Lambert."
+
+      - name: adresse_antenne
+      - name: ville_antenne
+      - name: cp_antenne
+      - name: azimut
+        description: "Orientation de l'antenne (degrés)."
+
+      # --- Technique ---
+      - name: id_cellule_technique
+        description: "CellID utilisé pour la jointure."
+
+      - name: type_event
+        description: "Type d'événement (VOIX, SMS, DATA...)."
+
+# ==========================================================================
+  # HREF SFR (EVENTS SUR ANTENNES)
+  # Spécificité : Coordonnées GPS concaténées (nettoyées) + GCI
+  # ==========================================================================
+  - name: stg_href_sfr
+    description: >
+      Données de bornage sur zone (HREF) pour SFR.
+      Géolocalisation : WGS84 (Latitude/Longitude extraites).
+    columns:
+      # --- Clés ---
+      - name: dossier_id
+        tests: [not_null]
+
+      - name: numero_zone
+        description: "ID de la zone pour l'analyse croisée (Clé de confrontation)."
+        tests: [not_null]
+
+      - name: nom_zone_formulaire
+
+      # --- Temps ---
+      - name: date_heure_utc_paris
+        description: "Heure de l'événement réseau."
+        tests: [not_null]
+
+      # --- Identifiants ---
+      - name: imsi
+        tests: [not_null]
+      - name: imei
+      - name: msisdn
+
+      # --- Matériel ---
+      - name: constructeur_mobile
+        description: "Marque du téléphone (ex: APPLE, SAMSUNG)."
+      - name: modele_mobile
+        description: "Modèle du téléphone (ex: IPHONE 13)."
+
+      # --- Localisation (GPS) ---
+      - name: latitude
+        description: "Latitude extraite (WGS84)."
+      - name: longitude
+        description: "Longitude extraite (WGS84)."
+
+      - name: id_cellule_technique
+        description: "Identifiant GCI."
+
+      - name: adresse_antenne
+      - name: ville_antenne
+      - name: cp_antenne

@@ -23,26 +23,16 @@ path = "pages/Mes_Donnees.py"
 name = "Mes_Donnees"
 icon = "📄"
 
-# Une section pour les outils d'analyse (privés)
-#[[pages]]
-# name = "Analyse Opérateurs"
-# icon = "📡"
-# is_section = true
+# Une section pour les outils d'analyse individuels
+[[pages]]
+path = "pages/Analyse_Individuelle.py"
+name = "Analyse Individuelle"
+icon = "📡"
 
-# [[pages]]
-# path = "pages/Orange_Reunion.py"
-# name = "Analyse Orange"
-# icon = "📌"
-
-# [[pages]]
-# path = "pages/SRR.py"
-# name = "Analyse SRR"
-# icon = "📌"
-
-# [[pages]]
-# path = "pages/TELCO.py"
-# name = "Analyse TELCO"
-# icon = "📌"
+[[pages]]
+path = "pages/Confrontation.py"
+name = "Confrontation"
+icon = "⚔️"
 
 # Une section pour l'admin (privé ou public, selon votre choix)
 [[pages]]

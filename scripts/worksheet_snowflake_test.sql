@@ -81,16 +81,16 @@ LIMIT 50;
 -- ============================================================================
 
 -- 1. Vider les Logs (Attention, l'appli ne saura plus quels fichiers sont chargés)
--- TRUNCATE TABLE DOSSIERS_DB.PROD.FILES_LOG;
+TRUNCATE TABLE DOSSIERS_DB.PROD.FILES_LOG;
 
 -- 2. Vider les Données Brutes (RAW)
--- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_MT20;
--- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_MT24;
--- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_ANNUAIRE;
--- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_BOUYGUES;
--- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_SFR;
--- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_EVENTS_ORANGE;
--- TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_CELLS_ORANGE;
+TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_MT20;
+TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_MT24;
+TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_ANNUAIRE;
+TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_BOUYGUES;
+TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_SFR;
+TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_EVENTS_ORANGE;
+TRUNCATE TABLE RAW_DATA.PNIJ_SRC.RAW_HREF_CELLS_ORANGE;
 
 -- 3. Vider les utilisateurs (Attention, tu ne pourras plus te connecter)
 -- TRUNCATE TABLE AUTH_DB.PROD.USERS;
@@ -115,3 +115,40 @@ select * from staging.dbt_staging.stg_href_orange limit 50;
 select * from raw_data.pnij_src.raw_href_events_orange limit 50;
 
 select * from staging.dbt_staging.stg_href_bouygues limit 50;
+
+SHOW GRANTS TO USER DBT_USER;
+-- (Remplacez DBT_USER par le login trouvé à l'étape 1 si c'est différent)
+
+use role accountadmin;
+
+-- 1. Débloquer l'utilisateur
+ALTER USER DBT_USER SET MINS_TO_UNLOCK = 0;
+
+-- 2. (Vivement conseillé) Réinitialiser le mot de passe pour être sûr à 100%
+-- Choisissez un mot de passe simple le temps du test, sans caractères trop exotiques
+ALTER USER DBT_USER SET PASSWORD = 'UnMotDePasseSuperFort123!';
+
+USE DATABASE STAGING;
+USE SCHEMA DBT_STAGING;
+
+-- Suppression des vues "bloquées" pour repartir de zéro
+DROP VIEW IF EXISTS STG_HREF_ORANGE;
+DROP VIEW IF EXISTS STG_HREF_BOUYGUES;
+DROP VIEW IF EXISTS STG_HREF_SFR;
+DROP VIEW IF EXISTS STG_MT_ORANGE;
+DROP VIEW IF EXISTS STG_MT_SFR;
+DROP VIEW IF EXISTS STG_MT_FREE;
+DROP VIEW IF EXISTS STG_MT_BOUYGUES;
+DROP VIEW IF EXISTS STG_ANNUAIRE;
+
+USE DATABASE MARTS;
+USE SCHEMA PROD;
+
+-- On supprime les tables qui bloquent (elles seront recréées par dbt)
+DROP TABLE IF EXISTS FCT_COMMUNICATIONS;
+DROP TABLE IF EXISTS FCT_BORNAGE_ZONES;
+DROP TABLE IF EXISTS DIM_DOSSIERS; -- Au cas où elle existe encore
+
+-- Vérification de sécurité : On s'assure que DBT_ROLE a bien les droits sur le schéma
+GRANT ALL PRIVILEGES ON SCHEMA MARTS.PROD TO ROLE DBT_ROLE;
+GRANT CREATE TABLE ON SCHEMA MARTS.PROD TO ROLE DBT_ROLE;

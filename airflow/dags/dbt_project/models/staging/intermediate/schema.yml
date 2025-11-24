@@ -1,0 +1,91 @@
+version: 2
+
+models:
+  # ==========================================================================
+  # 1. ANNUAIRE UNIFIÉ & ENRICHI
+  # ==========================================================================
+  - name: int_annuaire
+    description: >
+      Annuaire nettoyé et préparé pour l'enrichissement.
+      Les champs Identité et Adresse sont concaténés pour faciliter la recherche
+      et le géocodage futur.
+    columns:
+      - name: dossier_id
+        tests: [not_null]
+
+      - name: msisdn
+        description: "Numéro de téléphone (Clé de jointure principale)."
+        tests: [not_null]
+
+      - name: identite_complete
+        description: "Concaténation propre : NOM + PRÉNOM (ou Raison Sociale)."
+
+      - name: adresse_complete_recherche
+        description: "Adresse concaténée (Voie + CP + Ville + Pays) optimisée pour le géocodage (BAN/Google)."
+
+  # ==========================================================================
+  # 2. COMMUNICATIONS UNIFIÉES (MT20 + MT24)
+  # ==========================================================================
+  - name: int_communications_all
+    description: >
+      Table pivot rassemblant les flux Orange, SFR, Bouygues et Free.
+      Applique la conversion Lambert->GPS via UDF pour Orange/SFR.
+      Gère le dédoublonnage des événements.
+    columns:
+      - name: dossier_id
+        tests: [not_null]
+
+      - name: date_heure_utc_fr
+        description: "Horodatage harmonisé (UTC ou Local selon source)."
+        tests: [not_null]
+
+      - name: operateur
+        description: "Opérateur source (ORANGE, SFR, BOUYGUES, FREE)."
+
+      - name: latitude
+        description: "Latitude WGS84 (Soit native, soit calculée depuis Lambert II)."
+
+      - name: longitude
+        description: "Longitude WGS84 (Soit native, soit calculée depuis Lambert II)."
+
+      - name: x_lambert
+        description: "Coordonnée technique conservée pour audit."
+
+      - name: adresse
+        description: "Adresse brute issue du Fichier opérateur."
+
+      - name: complement_adresse
+        description: "Complément d'adresse brut."
+
+  # ==========================================================================
+  # 3. BORNAGES SUR ZONE (HREF UNIFIÉS)
+  # ==========================================================================
+  - name: int_href_unified
+    description: >
+      Table unifiée des événements de zones (HREF).
+      Sert de base pour la confrontation (Qui était dans la zone X ?).
+      Harmonise les formats hétérogènes des opérateurs.
+    columns:
+      - name: dossier_id
+        tests: [not_null]
+
+      - name: numero_zone
+        description: "Identifiant de la zone défini par l'enquêteur (1, 2, A...). CLÉ CRITIQUE DE CONFRONTATION."
+        tests: [not_null]
+
+      - name: date_heure
+        description: "Heure du bornage."
+        tests: [not_null]
+
+      - name: imsi
+        description: "Identifiant technique principal pour le bornage."
+        tests: [not_null]
+
+      - name: description_event
+        description: "Description normalisée (ex: Location Update, Appel...)."
+
+      - name: latitude
+        description: "Latitude WGS84 (Calculée pour Orange, Native pour SFR/Bouygues)."
+
+      - name: longitude
+        description: "Longitude WGS84."

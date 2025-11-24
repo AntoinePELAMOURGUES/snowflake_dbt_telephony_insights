@@ -3,6 +3,7 @@ import pandas as pd
 import uuid
 from datetime import date
 from snowflake.snowpark import Session
+from streamlit_option_menu import option_menu
 
 
 # --- 1. RÉCUPÉRATION DE LA SESSION SNOWFLAKE (via le cache) ---
@@ -47,7 +48,26 @@ def load_user_dossiers(user_email):
 
 
 # --- UI START ---
-st.title("📁 Gestion des Dossiers")
+
+st.markdown(
+    f"""
+    <h1 style='text-align: center; color: #0055A4; font-size: 40px;'>
+        📁 Gestion des Dossiers
+    </h1>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown("---")
+
+# --- MENU DE NAVIGATION ---
+selected_tab = option_menu(
+    menu_title=None,
+    options=["Mes Dossiers", "Créer un Dossier", "Supprimer un Dossier"],
+    icons=["folder2-open", "folder-plus", "folder-minus"],
+    menu_icon="cast",
+    default_index=0,
+    orientation="horizontal",
+)
 
 # Gestion du message de succès après rechargement (Pattern "Flash Message")
 if st.session_state.get("dossier_created_msg"):
@@ -55,13 +75,11 @@ if st.session_state.get("dossier_created_msg"):
     st.balloons()
     st.session_state["dossier_created_msg"] = None  # On efface le message
 
-# Les Onglets
-tab_liste, tab_creation = st.tabs(["📂 Mes Dossiers", "➕ Nouveau Dossier"])
 
 # ==============================================================================
 # ONGLET 1 : LISTE ET SÉLECTION
 # ==============================================================================
-with tab_liste:
+if selected_tab == "Mes Dossiers":
     st.header("Sélectionner un dossier de travail")
 
     user_email = st.session_state.get("user_email")
@@ -119,7 +137,7 @@ with tab_liste:
 # ==============================================================================
 # ONGLET 2 : CRÉATION
 # ==============================================================================
-with tab_creation:
+if selected_tab == "Créer un Dossier":
     st.header("Initialiser une nouvelle affaire")
 
     with st.form(
@@ -197,3 +215,113 @@ with tab_creation:
 
             except Exception as e:
                 st.error(f"Erreur technique : {e}")
+
+# ==============================================================================
+# ONGLET 3 : SUPPRESSION TOTALE
+# ==============================================================================
+if selected_tab == "Supprimer un Dossier":
+    st.header("🗑️ Suppression et Nettoyage")
+    st.warning(
+        "⚠️ DANGER : Cette action est irréversible. Elle supprimera le dossier, l'historique des fichiers ET toutes les données brutes associées."
+    )
+
+    user_email = st.session_state.get("user_email")
+
+    if user_email:
+        df_delete = load_user_dossiers(user_email)
+
+        if not df_delete.empty:
+            df_delete["display_label"] = (
+                df_delete["PV_NUMBER"] + " - " + df_delete["NOM_DOSSIER"]
+            )
+
+            selected_label = st.selectbox(
+                "Choisir le dossier à purger",
+                df_delete["display_label"],
+                index=None,
+                placeholder="Sélectionnez un dossier...",
+            )
+
+            if selected_label:
+                dossier_row = df_delete[
+                    df_delete["display_label"] == selected_label
+                ].iloc[0]
+                target_id = dossier_row["DOSSIER_ID"]
+                target_pv = dossier_row["PV_NUMBER"]
+
+                st.divider()
+                col_warn, col_btn = st.columns([3, 1])
+
+                with col_warn:
+                    st.error(
+                        f"🛑 Vous allez supprimer TOUT le contenu du dossier : **{selected_label}**"
+                    )
+                    confirm = st.checkbox(
+                        "Je confirme comprendre que ces données seront perdues."
+                    )
+
+                with col_btn:
+                    if st.button(
+                        "🗑️ TOUT SUPPRIMER", type="primary", disabled=not confirm
+                    ):
+                        progress_text = st.empty()
+                        bar = st.progress(0)
+
+                        try:
+                            # LISTE DES TABLES À NETTOYER (Ordre : Données -> Logs -> Dossier)
+                            tables_to_clean = [
+                                # 1. Données Brutes (RAW)
+                                "RAW_DATA.PNIJ_SRC.RAW_MT20",
+                                "RAW_DATA.PNIJ_SRC.RAW_MT24",
+                                "RAW_DATA.PNIJ_SRC.RAW_ANNUAIRE",
+                                "RAW_DATA.PNIJ_SRC.RAW_HREF_EVENTS_ORANGE",
+                                "RAW_DATA.PNIJ_SRC.RAW_HREF_CELLS_ORANGE",
+                                "RAW_DATA.PNIJ_SRC.RAW_HREF_SFR",
+                                "RAW_DATA.PNIJ_SRC.RAW_HREF_BOUYGUES",
+                                # 2. Logs d'import
+                                "DOSSIERS_DB.PROD.FILES_LOG",
+                                # 3. Le Dossier lui-même (En dernier)
+                                "DOSSIERS_DB.PROD.DOSSIERS",
+                            ]
+
+                            total_steps = len(tables_to_clean)
+
+                            # Exécution des suppressions en cascade
+                            for i, table in enumerate(tables_to_clean):
+                                progress_text.text(f"Nettoyage de la table {table}...")
+
+                                delete_query = (
+                                    f"DELETE FROM {table} WHERE DOSSIER_ID = ?"
+                                )
+                                session.sql(delete_query, params=[target_id]).collect()
+
+                                bar.progress((i + 1) / total_steps)
+
+                            # SUCCÈS
+                            bar.empty()
+                            progress_text.empty()
+                            load_user_dossiers.clear()  # Reset du cache
+
+                            st.success(
+                                f"✅ Le dossier {target_pv} et toutes ses données ont été purgés."
+                            )
+                            st.session_state["dossier_created_msg"] = (
+                                "🗑️ Dossier et données supprimés avec succès."
+                            )
+
+                            # On lance un petit refresh dbt léger pour propager la suppression aux Marts (Optionnel mais propre)
+                            # trigger_airflow_pipeline(target_tag="cleanup")
+
+                            import time
+
+                            time.sleep(2)
+                            st.rerun()
+
+                        except Exception as e:
+                            st.error(f"❌ Erreur lors du nettoyage : {e}")
+                            st.info(
+                                "Vérifiez que le rôle STREAMLIT_ROLE a bien les droits DELETE sur toutes les tables."
+                            )
+
+        else:
+            st.info("Aucun dossier à supprimer.")

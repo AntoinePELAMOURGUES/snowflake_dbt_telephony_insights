@@ -10,6 +10,9 @@ from streamlit_option_menu import option_menu
 import time
 from modules.delete_file_data import delete_file_data
 
+# Au début de votre fichier (ex: Gestion_Dossiers.py)
+from modules.utils import trigger_airflow_pipeline
+
 
 # --- 1. RÉCUPÉRATION DE LA SESSION SNOWFLAKE ---
 @st.cache_resource
@@ -70,6 +73,7 @@ if selected_tab == "Mes Fichiers":
     # Utilisation d'une CTE ou LIMIT pour optimiser l'affichage si nécessaire
     query_logs = f"""
         SELECT
+            DOSSIER_ID,
             FILE_TYPE,
             FILENAME,
             TARGET_NAME,
@@ -471,18 +475,22 @@ if selected_tab == "Intégrer des Données":
                     quote_identifiers_flag = (
                         False  # Par défaut False, sauf pour Annuaire
                     )
+                    # Détermination du tag selon le type de fichier choisi
+                    dbt_tag_to_run = "all"  # Par défaut
 
                     if "MT20" in data_type:
                         table_target = "RAW_DATA.PNIJ_SRC.RAW_MT20"
                         short_type = "MT20"
                         # Pour MT20, source_filename est déjà défini par l'input utilisateur (target_identifier)
                         quote_identifiers_flag = True
+                        dbt_tag_to_run = "communications"
 
                     elif "MT24" in data_type:
                         table_target = "RAW_DATA.PNIJ_SRC.RAW_MT24"
                         short_type = "MT24"
                         # Pour MT24, source_filename est déjà défini par l'input utilisateur
                         quote_identifiers_flag = True
+                        dbt_tag_to_run = "communications"
 
                     elif "HREF" in data_type:
                         # Pour HREF, on garde les tags de zone car c'est structurel pour le croisement
@@ -490,6 +498,7 @@ if selected_tab == "Intégrer des Données":
                         short_type = "HREF"
                         # Source filename défini par l'input utilisateur
                         quote_identifiers_flag = True
+                        dbt_tag_to_run = "reseau"
 
                         cols_list = df.columns.tolist()
                         if any("Heure Eve" in c for c in cols_list):
@@ -527,6 +536,7 @@ if selected_tab == "Intégrer des Données":
                         quote_identifiers_flag = (
                             True  # Obligatoire car les colonnes commencent par "_"
                         )
+                        dbt_tag_to_run = "annuaire"
 
                         # --- FILTRAGE STRICT ANNUAIRE ---
                         # On ne garde que les colonnes qui existent vraiment dans Snowflake
@@ -591,8 +601,17 @@ if selected_tab == "Intégrer des Données":
 
                 progress_bar.progress((idx + 1) / len(uploaded_files))
 
+            # =================================================================
+            # ### AJOUT : DÉCLENCHEMENT DE L'ORCHESTRATION (AIRFLOW)
+            # =================================================================
+            # On déclenche seulement si au moins un fichier a été traité
+            # et on le fait UNE SEULE FOIS pour tout le lot.
+            st.info(f"🔄 Déclenchement du traitement pour : {dbt_tag_to_run}")
+            trigger_airflow_pipeline(target_tag=dbt_tag_to_run)
+            # =================================================================
+
             st.success("✅ Ingestion terminée !")
-            time.sleep(1)  # Petit temps de pause pour voir la barre à 100%
+            time.sleep(2)  # Petit temps de pause pour voir la barre à 100%
             st.rerun()  # Rafraîchissement pour mettre à jour l'onglet "Mes Fichiers"
 
 # ==============================================================================
