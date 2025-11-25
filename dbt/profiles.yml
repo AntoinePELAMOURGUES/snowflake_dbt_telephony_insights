@@ -1,0 +1,16 @@
+# Le nom ici 'telephony_insights' DOIT correspondre à celui dans dbt_project.yml
+snowflake_dbt_telephony_insights_raw:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      # Toutes ces valeurs viendront du docker-compose
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA') }}"
+      threads: 4
+      client_session_keep_alive: False

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  telephony-app:
+    build:
+      context: ./streamlit/app  # Chemin vers ton Dockerfile
+      dockerfile: Dockerfile
+    container_name: telephony_insights_app
+    ports:
+      - "8501:8501"  # Port Streamlit standard
+    volumes:
+      # CRITIQUE : On monte les secrets depuis l'hôte vers le conteneur
+      # Cela évite de copier les mots de passe dans l'image Docker elle-même
+      - ./streamlit/app/.streamlit/secrets.toml:/app/.streamlit/secrets.toml
+      - ./streamlit/app/.streamlit/rsa_key.p8:/app/.streamlit/rsa_key.p8
+      # Optionnel : Pour développer en temps réel sans reconstruire l'image
+      - ./streamlit/app:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  # Le nouveau service DBT
+  telephony-dbt:
+    build:
+      context: ./dbt
+      dockerfile: Dockerfile
+    container_name: telephony_insights_dbt
+    # On injecte les secrets ici (venant d'un fichier .env à la racine)
+    environment:
+      # On utilise la syntaxe ${NOM_VARIABLE} pour lire dans le .env
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER:-DBT_USER} # Valeur par défaut DBT_USER si non définie
+      - SNOWFLAKE_PASSWORD=${DBT_PASSWORD}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE:-DBT_ROLE}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE:-DBT_WH}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE:-raw_data}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA:-pnij_src}

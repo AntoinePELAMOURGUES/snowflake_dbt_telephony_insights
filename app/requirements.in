@@ -1,0 +1,15 @@
+streamlit
+streamlit-option-menu
+st-pages
+st-clickable-images
+pandas
+numpy
+openpyxl
+pyproj
+plotly
+kaleido
+snowflake-connector-python[pandas]
+snowflake-snowpark-python
+bcrypt
+python-dotenv
+requests
