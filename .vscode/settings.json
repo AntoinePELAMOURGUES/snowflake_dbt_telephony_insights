@@ -1,0 +1,8 @@
+{
+  "files.exclude": {
+    "**/docker-compose.yml": true,
+    "**/.dockerignore": true,
+    "**/dbt/Dockerfile": true,
+    "**/dbt/profiles.yml": true
+  }
+}
